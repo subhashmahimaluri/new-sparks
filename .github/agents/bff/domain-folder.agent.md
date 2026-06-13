@@ -1,5 +1,6 @@
 ---
 user-invocable: false
+tools: ["edit", "search/codebase", "search/usages"]
 name: domain-folder
 description: Scaffolds a new, independently-deployable BFF domain folder in the ExperienceAPI monorepo at src/domains/<name>/ — wiring, not business logic.
 model: sonnet

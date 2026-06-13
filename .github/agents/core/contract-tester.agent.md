@@ -1,5 +1,6 @@
 ---
 user-invocable: false
+tools: ["edit", "search/codebase", "search/usages"]
 name: contract-tester
 description: Authors contract tests that pin the FE↔BFF boundary and fail loudly on any ExperienceAPI contract drift.
 model: sonnet

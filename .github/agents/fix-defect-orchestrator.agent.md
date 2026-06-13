@@ -1,6 +1,7 @@
 ---
 name: fix-defect-orchestrator
 description: Diagnose and fix a defect across the EQ FE/BFF estate — fetch, reproduce, locate, root-cause, fix, regression-test, and gate under governance and budget.
+tools: ["edit", "search/codebase", "search/usages", "web/fetch", "ado/*", "figma/*"]
 agents: ["*"]
 user-invocable: true
 argument-hint: "[PBI id | bug id | stack trace]"

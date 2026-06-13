@@ -1,5 +1,6 @@
 ---
 user-invocable: false
+tools: ["edit", "search/codebase", "search/usages"]
 name: supervisor
 description: Governance owner of the run — plans stages, allocates tool-call/token budget, enforces guardrails, and gives the go/no-go verdict between stages.
 model: opus

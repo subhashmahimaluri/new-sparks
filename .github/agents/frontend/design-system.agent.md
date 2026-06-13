@@ -1,5 +1,6 @@
 ---
 user-invocable: false
+tools: ["edit", "search/codebase", "search/usages"]
 name: design-system
 description: Forces UI to consume eq-one-design-system components and BLOCKS hand-rolled equivalents of components the design system already provides.
 model: sonnet

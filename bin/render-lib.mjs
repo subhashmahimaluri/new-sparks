@@ -156,14 +156,20 @@ const neutraliseClaudeisms = (body) => body
   .replace(/via the `Agent` tool/gi, 'by delegating via your `agents` list')
   .replace(/`Agent` tool/g, 'sub-agent delegation');
 
+// VS Code Copilot custom-agent tool identifiers are NAMESPACED (e.g. `edit`, `search/codebase`,
+// `web/fetch`, `<mcp-server>/*`) — NOT the Claude names (Read/Grep/Bash/Agent). Wrong names => the agent
+// gets no tools and stalls asking the user to "enable file editing tools." These are the documented ids.
+// Ref: https://code.visualstudio.com/docs/agent-customization/custom-agents
+const COPILOT_ORCH_TOOLS = '["edit", "search/codebase", "search/usages", "web/fetch", "ado/*", "figma/*"]';
+const COPILOT_SUBAGENT_TOOLS = '["edit", "search/codebase", "search/usages"]';
+
 // Orchestrator → a top-level, user-invocable custom agent that may delegate to any sub-agent.
 function toCopilotOrchestrator(content, id, src) {
   const { fmMap, body } = parseFm(content);
-  // NOTE: `tools` is deliberately OMITTED → Copilot grants the full default toolset (file/terminal/MCP),
-  // so the agent runs instead of asking to enable tools. Delegation is the `agents` field.
   const fm = {
     name: `${id}-orchestrator`,
     description: fmMap['description'] || id,
+    tools: COPILOT_ORCH_TOOLS, // file editing + codebase search + fetch + the ADO/Figma MCP servers
     agents: '["*"]', // may delegate to any sub-agent (Copilot's delegation mechanism)
     'user-invocable': 'true', // appears in the Agents dropdown
   };
@@ -174,7 +180,10 @@ function toCopilotOrchestrator(content, id, src) {
 
 // Sub-agent → a custom agent in a category subfolder, delegation-only (kept out of the dropdown).
 function toCopilotSubagent(content, src) {
-  return withBanner(injectFm(stripToolsLine(content), { 'user-invocable': 'false' }), src, 'Copilot');
+  return withBanner(injectFm(stripToolsLine(content), {
+    'user-invocable': 'false',
+    tools: COPILOT_SUBAGENT_TOOLS, // Copilot-namespaced; replaces the stripped Claude tool names
+  }), src, 'Copilot');
 }
 
 // Guardrail / principle → a path-scoped instruction that auto-applies everywhere.

@@ -1,6 +1,7 @@
 ---
 name: review-orchestrator
 description: Review orchestrator — fetch a PR/branch diff, run a governed 6-lens review (correctness, security, perf, a11y, contract, style), and gate with the governance trio.
+tools: ["edit", "search/codebase", "search/usages", "web/fetch", "ado/*", "figma/*"]
 agents: ["*"]
 user-invocable: true
 argument-hint: "[PR number | branch]"

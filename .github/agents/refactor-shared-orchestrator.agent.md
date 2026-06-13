@@ -1,6 +1,7 @@
 ---
 name: refactor-shared-orchestrator
 description: Find duplicated/common code across the MFEs and move it into eq-one-shared, rewriting every importer, under budget and behind the cache.
+tools: ["edit", "search/codebase", "search/usages", "web/fetch", "ado/*", "figma/*"]
 agents: ["*"]
 user-invocable: true
 argument-hint: [optional scope]

@@ -1,5 +1,6 @@
 ---
 user-invocable: false
+tools: ["edit", "search/codebase", "search/usages"]
 name: codegen
 description: General-purpose, language-agnostic code generation and surgical edits when no specialist agent owns the change.
 model: sonnet

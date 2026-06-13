@@ -1,5 +1,6 @@
 ---
 user-invocable: false
+tools: ["edit", "search/codebase", "search/usages"]
 name: scanner
 description: Mechanical scans — dependency diffs, dead-code detection, secret-pattern regex, lint output — feeding @shared-curator and @security.
 model: haiku

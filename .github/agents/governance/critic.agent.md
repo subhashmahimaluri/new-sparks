@@ -1,5 +1,6 @@
 ---
 user-invocable: false
+tools: ["edit", "search/codebase", "search/usages"]
 name: critic
 description: Adversarial governance reviewer — returns strict PASS/FAIL with required changes on every other agent's output; a FAIL blocks the stage.
 model: opus

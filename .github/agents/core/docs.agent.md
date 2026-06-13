@@ -1,5 +1,6 @@
 ---
 user-invocable: false
+tools: ["edit", "search/codebase", "search/usages"]
 name: docs
 description: Updates READMEs, JSDoc/XML-doc, and changelogs to exactly match a merged diff — no new prose, no judgment calls.
 model: haiku

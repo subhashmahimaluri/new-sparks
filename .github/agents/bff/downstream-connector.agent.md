@@ -1,5 +1,6 @@
 ---
 user-invocable: false
+tools: ["edit", "search/codebase", "search/usages"]
 name: downstream-connector
 description: Wires ExperienceAPI downstream API clients with Polly resilience, timeouts, and retries in the right BFF domain folder.
 model: sonnet

@@ -1,5 +1,6 @@
 ---
 user-invocable: false
+tools: ["edit", "search/codebase", "search/usages"]
 name: architect
 description: Decides where code belongs (which MFE / eq-one-shared / design-system / BFF domain), the shape of the change, and the sequence of sub-tasks for non-trivial or cross-repo work — read-only, designs but never builds.
 model: opus

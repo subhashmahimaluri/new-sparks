@@ -1,5 +1,6 @@
 ---
 user-invocable: false
+tools: ["edit", "search/codebase", "search/usages"]
 name: contract-publisher
 description: Publishes the per-domain ExperienceAPI OpenAPI/Swagger contract that the FE @contract agent consumes, and fails on drift.
 model: sonnet

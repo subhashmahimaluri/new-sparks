@@ -1,6 +1,7 @@
 ---
 name: resume-orchestrator
 description: Resume a prior eq-sparks run — a cloud->IDE handoff (Flow 3) OR a locally-interrupted run (IDE closed / crash / cancel) — WITHOUT re-fetching ADO or Figma. Read the story cache + ledger + last handoff envelope, re-enter the orchestrator named in metadata.json at the first pending stage, and continue the governed sequence to completion.
+tools: ["edit", "search/codebase", "search/usages", "web/fetch", "ado/*", "figma/*"]
 agents: ["*"]
 user-invocable: true
 argument-hint: "[run-id | latest]"

@@ -1,5 +1,6 @@
 ---
 user-invocable: false
+tools: ["edit", "search/codebase", "search/usages"]
 name: shared-curator
 description: Detects duplicated/common code across EQOne MFEs and moves it to eq-one-shared, rewriting all importers; flags dead code for removal.
 model: sonnet

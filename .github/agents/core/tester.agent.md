@@ -1,5 +1,6 @@
 ---
 user-invocable: false
+tools: ["edit", "search/codebase", "search/usages"]
 name: tester
 description: Writes and runs unit tests for FE/BFF changes and reads results — mechanical, well-scoped, Haiku-first.
 model: haiku

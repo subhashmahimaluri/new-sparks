@@ -1,5 +1,6 @@
 ---
 user-invocable: false
+tools: ["edit", "search/codebase", "search/usages"]
 name: perf
 description: Read-only performance reviewer for bundle size, re-render hotspots, N+1 queries, and downstream call fan-out across MFEs and BFF domains.
 model: sonnet

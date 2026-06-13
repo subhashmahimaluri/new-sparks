@@ -1,5 +1,6 @@
 ---
 user-invocable: false
+tools: ["edit", "search/codebase", "search/usages"]
 name: learner
 description: The curated-learning loop — reads cross-run telemetry + outcomes and PROPOSES durable lessons for shared/memory/lessons.md, but never auto-activates them (G14 — human approval via PR).
 model: sonnet

@@ -1,6 +1,7 @@
 ---
 name: contract-sync-orchestrator
 description: Sync FE TypeScript types and clients to the latest ExperienceAPI BFF contract for a domain, diffing for drift and patching under governance.
+tools: ["edit", "search/codebase", "search/usages", "web/fetch", "ado/*", "figma/*"]
 agents: ["*"]
 user-invocable: true
 argument-hint: "[domain name]"

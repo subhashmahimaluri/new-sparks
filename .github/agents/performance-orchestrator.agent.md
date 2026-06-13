@@ -1,6 +1,7 @@
 ---
 name: performance-orchestrator
 description: Performance orchestrator — profile a scope or PR for bundle/re-render/N+1/downstream fan-out cost, optimise the hotspots in the owning source, re-verify the win, and gate with the governance trio under budget.
+tools: ["edit", "search/codebase", "search/usages", "web/fetch", "ado/*", "figma/*"]
 agents: ["*"]
 user-invocable: true
 argument-hint: "[scope | PR number | branch]"

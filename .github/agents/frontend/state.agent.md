@@ -1,5 +1,6 @@
 ---
 user-invocable: false
+tools: ["edit", "search/codebase", "search/usages"]
 name: state
 description: Applies EQ Zustand store patterns to FE state; promotes common stores into eq-one-shared and blocks per-MFE store duplication.
 model: sonnet

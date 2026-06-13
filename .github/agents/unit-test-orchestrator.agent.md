@@ -1,6 +1,7 @@
 ---
 name: unit-test-orchestrator
 description: Author and run unit tests to a coverage target across the EQOne MFEs and the ExperienceAPI BFF — @scanner finds untested code, @tester authors tests (parallel per module), run + measure coverage, gated by @critic, under budget and behind the cache.
+tools: ["edit", "search/codebase", "search/usages", "web/fetch", "ado/*", "figma/*"]
 agents: ["*"]
 user-invocable: true
 argument-hint: "[path | module | coverage target]"

@@ -1,6 +1,7 @@
 ---
 name: code-builder-orchestrator
 description: Implement a feature INTO existing EQ FE/BFF code (the day-2 complement to /scaffold's new structure) — ADO-aware, DNA-pre-checked, built by @codegen + specialists in parallel, tested, and gated by the governance trio under budget.
+tools: ["edit", "search/codebase", "search/usages", "web/fetch", "ado/*", "figma/*"]
 agents: ["*"]
 user-invocable: true
 argument-hint: "[PBI id | task description] [skip-figma]"

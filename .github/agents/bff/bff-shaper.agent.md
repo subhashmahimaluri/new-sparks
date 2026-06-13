@@ -1,5 +1,6 @@
 ---
 user-invocable: false
+tools: ["edit", "search/codebase", "search/usages"]
 name: bff-shaper
 description: Paints and polishes ExperienceAPI downstream request/response shapes into the exact contract the FE needs — BFF presentation only, never business logic.
 model: sonnet

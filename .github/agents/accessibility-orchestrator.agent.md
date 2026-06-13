@@ -1,6 +1,7 @@
 ---
 name: accessibility-orchestrator
 description: Accessibility orchestrator — audit an EQOne screen/route/PR against WCAG 2.2 AA, fix the violations in the design system / source, re-verify, and gate with the governance trio under budget.
+tools: ["edit", "search/codebase", "search/usages", "web/fetch", "ado/*", "figma/*"]
 agents: ["*"]
 user-invocable: true
 argument-hint: "[screen | route | PR number] [skip-figma]"

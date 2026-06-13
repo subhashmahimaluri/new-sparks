@@ -1,5 +1,6 @@
 ---
 user-invocable: false
+tools: ["edit", "search/codebase", "search/usages"]
 name: reviewer
 description: First-pass code review for correctness, style, and EQ conventions, clearing cheap issues before the opus-tier @critic gate.
 model: sonnet

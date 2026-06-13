@@ -1,6 +1,7 @@
 ---
 name: security-orchestrator
 description: Threat-review a scope or PR across the EQ FE/BFF estate, fix the findings, and re-verify under governance and budget — the proactive complement to report-driven /fix-pentest.
+tools: ["edit", "search/codebase", "search/usages", "web/fetch", "ado/*", "figma/*"]
 agents: ["*"]
 user-invocable: true
 argument-hint: "[scope | PR number | branch]"

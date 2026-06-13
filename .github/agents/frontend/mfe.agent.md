@@ -1,5 +1,6 @@
 ---
 user-invocable: false
+tools: ["edit", "search/codebase", "search/usages"]
 name: mfe
 description: Scaffolds/extends a child MFE (saye/sip/shares) and wires it into the eq-nexus-ui RootMFE shell, respecting MFE boundaries and the module-federation contract.
 model: sonnet
