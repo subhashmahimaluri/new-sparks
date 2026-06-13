@@ -19,8 +19,8 @@
 
 import { join, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { existsSync, readFileSync, writeFileSync, mkdirSync, appendFileSync, readdirSync, cpSync } from 'node:fs';
-import { renderClaude, renderCopilot } from '../bin/render-lib.mjs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, appendFileSync, readdirSync, cpSync, rmSync } from 'node:fs';
+import { renderClaude, renderCopilot, listAgents, listSkills, listOrchestrators } from '../bin/render-lib.mjs';
 
 const PKG_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..'); // canonical source
 const PROFILES = () => readdirSync(join(PKG_ROOT, 'profiles')).filter((p) => existsSync(join(PKG_ROOT, 'profiles', p, 'profile.yml')));
@@ -85,17 +85,48 @@ function ensureGitignore(dest) {
   }
 }
 
-// Sync the canonical harness OS into the consumer's gitignored .eq-sparks/ so agents can READ
-// guardrails / methodology / memory / profiles / skills there, and write run state under
-// cache/ agent-memory/ telemetry/. Mirrors the "sparse-checkout → .eq-sparks/" install step.
-function syncHarness(dest) {
+// Sync the harness OS into the consumer's gitignored .eq-sparks/, SCOPED TO THE PROFILE.
+// Profile-agnostic OS (shared/ methodology/ console/ instructions/) is copied whole — every agent
+// reads guardrails/methodology/memory there. The profile-SPECIFIC parts (agents/ orchestrators/
+// skills/ and the profile dir) are filtered to just what this profile uses, so a fe-childmfe repo
+// does NOT get the BFF/platform agents or the other four profiles. The runtime dirs (cache/
+// agent-memory/ telemetry/) are preserved across re-syncs because they hold live run state.
+function syncHarness(dest, filter, profileName) {
   const osDir = join(dest, '.eq-sparks');
-  for (const d of ['shared', 'methodology', 'console', 'instructions', 'profiles', 'skills', 'agents', 'orchestrators']) {
+  const keep = (f, id) => !f || f.includes(id);
+
+  // Clean the MANAGED source dirs (never the runtime dirs) so a re-sync drops anything no longer in scope.
+  for (const d of ['agents', 'orchestrators', 'skills', 'profiles', 'shared', 'methodology', 'console', 'instructions']) {
+    rmSync(join(osDir, d), { recursive: true, force: true });
+  }
+  rmSync(join(osDir, 'SCHEMA.md'), { force: true });
+
+  // Profile-agnostic OS — whole.
+  for (const d of ['shared', 'methodology', 'console', 'instructions']) {
     const from = join(PKG_ROOT, d);
     if (existsSync(from)) cpSync(from, join(osDir, d), { recursive: true });
   }
-  const schema = join(PKG_ROOT, 'SCHEMA.md');
-  if (existsSync(schema)) cpSync(schema, join(osDir, 'SCHEMA.md'));
+  if (existsSync(join(PKG_ROOT, 'SCHEMA.md'))) cpSync(join(PKG_ROOT, 'SCHEMA.md'), join(osDir, 'SCHEMA.md'));
+
+  // Profile-scoped — only what this profile uses.
+  for (const a of listAgents(PKG_ROOT)) if (keep(filter.agents, a.id)) {
+    const to = join(osDir, 'agents', a.category, a.id + '.md');
+    mkdirSync(dirname(to), { recursive: true });
+    cpSync(a.path, to);
+  }
+  for (const s of listSkills(PKG_ROOT)) if (keep(filter.skills, s.id)) {
+    cpSync(dirname(s.path), join(osDir, 'skills', s.id), { recursive: true });
+  }
+  for (const o of listOrchestrators(PKG_ROOT)) if (keep(filter.orchestrators, o.id)) {
+    const to = join(osDir, 'orchestrators', o.id + '.md');
+    mkdirSync(dirname(to), { recursive: true });
+    cpSync(o.path, to);
+  }
+  if (profileName && existsSync(join(PKG_ROOT, 'profiles', profileName))) {
+    cpSync(join(PKG_ROOT, 'profiles', profileName), join(osDir, 'profiles', profileName), { recursive: true });
+  }
+
+  // Runtime dirs — preserved across re-syncs (live run state).
   for (const d of ['cache', 'agent-memory', 'telemetry']) mkdirSync(join(osDir, d), { recursive: true });
 }
 
@@ -134,9 +165,9 @@ function init(args) {
   console.log(`eq-sparks init → profile=${profileName} ide=${ides.join('+')} mode=${offline ? 'offline-only' : 'full'}`);
 
   if (!offline) {
-    // Sync the full harness OS into the gitignored .eq-sparks/ so agents can read it + keep run state.
-    syncHarness(dest);
-    console.log('  • synced harness → .eq-sparks/ (shared, methodology, profiles, skills, instructions + cache/agent-memory/telemetry)');
+    // Sync the profile-scoped harness OS into the gitignored .eq-sparks/.
+    syncHarness(dest, filter, profileName);
+    console.log(`  • synced harness → .eq-sparks/ (scoped to ${profileName}: its agents/skills/orchestrators + the shared OS; + cache/agent-memory/telemetry)`);
   }
 
   const rendered = render(dest, ides, filter, { offline, osPrefix });
@@ -173,8 +204,8 @@ function syncOrUpdate(args, cmd) {
   const osPrefix = offline ? '' : '.eq-sparks/';
   console.log(`eq-sparks ${cmd} → profile=${profileName} ide=${ides.join('+')} mode=${offline ? 'offline-only' : 'full'}`);
   if (!offline) {
-    syncHarness(dest);
-    console.log('  • re-synced harness → .eq-sparks/');
+    syncHarness(dest, filter, profileName);
+    console.log(`  • re-synced harness → .eq-sparks/ (scoped to ${profileName})`);
   }
   render(dest, ides, filter, { offline, osPrefix }).forEach((r) => console.log(`  • re-rendered ${r}`));
 
