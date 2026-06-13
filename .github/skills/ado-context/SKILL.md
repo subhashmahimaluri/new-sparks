@@ -26,6 +26,7 @@ This is the single source of PBI truth for the run. Downstream agents (`@archite
 | `organization` | string | no | ADO org slug. Defaults to the org configured for the ADO MCP server. |
 | `project` | string | no | ADO project. Defaults to the MCP-configured project. |
 | `include_attachments` | boolean | no | Default `true`. List attachment metadata (name, url, size). Never downloads file bodies here. |
+| `refresh` | boolean | no | Default `false`. When `true` (the orchestrator's explicit `refresh` flag), bypass the story-cache hit and re-fetch from ADO, overwriting `story-cache/<pbi>.json`. The ONLY way to force a re-fetch when the cache is present. |
 
 ## Outputs
 
@@ -43,18 +44,18 @@ A single `pbi_context` object:
 | `parent_epic` | object \| null | `{ id, title }` of the resolved parent epic, or `null`. |
 | `attachments` | object[] | `{ name, url, size }`; empty array when none. |
 | `figma_urls` | string[] | De-duplicated Figma links discovered in `description_md` + `acceptance_criteria`. Empty array if none. |
-| `fetched_at` | ISO-8601 | Fetch timestamp (drives cross-run TTL). |
+| `fetched_at` | ISO-8601 | Fetch timestamp — informational provenance only; it does NOT drive any TTL or expiry for the story cache. |
 | `source` | enum | `ado-live` or `cache`. |
 
 ## Tools Needed
 
 - **ADO MCP server** (`mcp: ado`) — work-item read, parent-link traversal, attachment listing.
-- `cache-lookup` — read/write the per-run (and opt-in cross-run) cache entry.
+- `cache-lookup` — read/write the cross-run **story cache** entry at `.eq-sparks/cache/story-cache/<pbi>.json` (no TTL; present ⇒ skip).
 - No write tools. This skill is strictly read-only against ADO and the cache.
 
 ## Constraints
 
-- **cacheable: true** (per-run, keyed on `pbi_id`; opt-in cross-run ttl 600s). Within a run the result is cached so repeated reads cost nothing. Cross-run reuse is **opt-in** because PBI metadata is "stable but not frozen"; honour the 600s TTL and the cross-run policy in `cache-policy`. Treat this as the stable-PBI-metadata case described there.
+- **cacheable: true** — the fetched context is persisted to the **story cache** `.eq-sparks/cache/story-cache/<pbi>.json`, keyed on `pbi_id`. This is a **cross-run, NO-TTL** file (the story-cache clause in `cache-policy` §3): if it exists, the ADO call is skipped **unconditionally regardless of age** — token saving wins over freshness. There is no 600s expiry. The cache is re-fetched (overwritten) **only** when the orchestrator passes an explicit `refresh` flag or the file is absent.
 - **Auth via interactive Azure sign-in. No PAT in the repo, ever.** Never read, write, or echo a token. Honour `safety-rails` and the no-secrets rule — credentials live in the developer's MCP session, not in this repo.
 - **Read-only.** This skill never edits the work item, posts comments, or changes state.
 - **No PII leakage.** Do not surface reporter/assignee personal data or emails into the run log beyond what an agent strictly needs; respect `safety-rails`.
@@ -75,14 +76,14 @@ A single `pbi_context` object:
 ## How it works
 
 1. Receive `pbi_id` (+ optional org/project).
-2. Call `cache-lookup` keyed on `pbi_id`. On a per-run hit, return it with `source: cache` and stop. On a cross-run hit, honour the 600s TTL only if cross-run reuse is opted in (`cache-policy`); otherwise fall through.
+2. Look for the **story cache** at `.eq-sparks/cache/story-cache/<pbi_id>.json` (via `cache-lookup`). **If it exists and `refresh` is not set, return it with `source: cache` and stop — no ADO call, regardless of the file's age.** This is the per-PBI no-repeat cache: a PBI is fetched once, then every agent (and a later `/resume`) reads the same file. There is no TTL — present ⇒ skip (the story-cache clause in `cache-policy` §3). Re-fetch ONLY when `refresh` is set or the file is absent.
 3. Ensure an interactive Azure session exists on the ADO MCP server; if not, raise `auth_required`.
 4. Fetch the work item via the ADO MCP server: title, type, state, description (HTML), acceptance criteria, tags.
 5. Convert the HTML description to `description_md`; split acceptance criteria into a clean string array.
 6. Resolve the **parent epic** by traversing the parent link (one hop); set `parent_epic` or `null`.
 7. If `include_attachments`, list attachment metadata (name/url/size) — never download bodies.
 8. Regex-scan `description_md` and `acceptance_criteria` for Figma URLs; de-duplicate into `figma_urls`.
-9. Assemble `pbi_context`, stamp `fetched_at` and `source: ado-live`, write the cache entry (per-run; cross-run only when opted in), and return.
+9. Assemble `pbi_context`, stamp `fetched_at` and `source: ado-live`, and **write it to `.eq-sparks/cache/story-cache/<pbi_id>.json`** — the story-cache file the orchestrator and every downstream agent read. (`figma-context` later merges design metadata into the same file under a `figma` key; agents hand off by referencing this file, not by re-fetching.) Return the object.
 
 ## Anti-patterns
 

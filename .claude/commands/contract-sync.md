@@ -85,3 +85,9 @@ Syncs the `sip` domain — reads the contract via cache, diffs with `contract-di
 Syncs the `shares` domain. If the contract is unchanged since the last run, the cache short-circuits the read/diff stages and the run completes near-free with an empty-drift Summary.
 
 `$ARGUMENTS` is the single domain name (e.g. `saye`, `sip`, `shares`). If it is ambiguous or no contract is published for it, `@decision` resolves the fork with a logged, defensible rationale before any patching begins.
+
+---
+
+## Resume & checkpoint (interruption-safe)
+
+This orchestrator is resumable after any interruption (IDE closed, crash, cancel). At **Stage 0** the orchestrator writes `.eq-sparks/agent-memory/<run-id>/metadata.json` with `orchestrator: "contract-sync"` and the ordered `stages` list, and seeds `ledger.jsonl` with each stage `pending`. After **every** stage passes its gate, the orchestrator — the main thread, which holds `Write`; `@supervisor` is read-only and only specifies *what* to record — **appends a `done` line** to `ledger.jsonl` with that stage's `task_id` + `content_hash` (per [dedup-policy](../shared/guardrails/dedup-policy.md) / [memory-schema](../shared/memory/memory-schema.md)). The ledger is written **incrementally after every stage, not only at the end**, so finished stages survive an interruption. PBI/Figma context is read from the no-TTL **story cache** `.eq-sparks/cache/story-cache/<pbi>.json` and is **never re-fetched**. If interrupted, **`/resume`** reads `metadata.json`, re-enters *this* orchestrator at the first `pending` stage, and skips work already marked `done`.

@@ -33,8 +33,8 @@ Cacheable skills:
 |---|---|---|
 | `dna-precheck` | Pure function of the PBI + repo snapshot; runs BEFORE any codegen | Re-checking the same PBI against the same repo state is wasted work — `dedup-policy` relies on this being fast |
 | `contract-diff` | Deterministic diff of an OpenAPI/Swagger contract vs FE TS types | Keyed on the contract + types hash; `@contract` / `@contract-tester` reuse it |
-| `ado-context` (MCP:ado) | A work-item's fetched context is stable within a run | Title, description→markdown, AC, tags, parent epic, Figma URLs |
-| `figma-context` (MCP:figma) | A Figma frame's context is stable within a run | Frame hierarchy, text, styles, component names, render |
+| `ado-context` (MCP:ado) | A work-item's fetched context is stable; persisted to the story cache | Title, description→markdown, AC, tags, parent epic, Figma URLs. Written to `.eq-sparks/cache/story-cache/<pbi>.json` — see the story-cache clause in §3. |
+| `figma-context` (MCP:figma) | A Figma frame's context for the PBI is merged into the story cache | Frame hierarchy, text, styles, component names, render. Merged into the same `story-cache/<pbi>.json` under `figma` — see §3. |
 | codebase-search | Same query against the same repo snapshot returns the same hits | Used by `@architect`, `@shared-curator`, `dna-precheck` |
 | read-file | Same path at the same repo snapshot returns the same bytes | The cheapest, highest-frequency hit |
 
@@ -81,6 +81,20 @@ For genuinely stable, repo-level metadata it is wasteful to re-fetch every run (
 - `profile_version` is the kill switch: bumping it invalidates every cross-run entry under that profile, so a metadata-shape change can't serve stale data.
 
 If you are unsure whether something is stable enough for cross-run, it isn't — leave it per-run.
+
+### Story cache — the single cross-run home for PBI + Figma context (skip-if-present, NO TTL)
+
+The one deliberate, named exception to "opt-in cross-run with a TTL" is the **story cache**:
+
+```
+.eq-sparks/cache/story-cache/<pbi>.json
+```
+
+This is THE single home for a PBI's fetched context — the `ado-context` fields and the merged `figma-context` metadata (under a `figma` key) — keyed simply by PBI id. There is no competing run-folder `ado-context.json` / `figma-context.json`; this file is what every downstream agent and a later `/resume` read.
+
+- **Present ⇒ skip — unconditionally, with NO TTL.** If `story-cache/<pbi>.json` exists, the ADO/Figma MCP call is **skipped** regardless of the file's age. Token saving wins over freshness: the user explicitly wants to avoid the ADO/Figma round-trip whenever the cache is present. The 600s cross-run TTL does **NOT** govern the story cache; `fetched_at` on the entry is informational only, never a TTL driver.
+- **Re-fetch ONLY on explicit `refresh` or absence.** The story cache is re-fetched (overwriting the file) only when the orchestrator command carries an explicit `refresh` flag (e.g. `/scaffold PBI 37 refresh`) or the file is absent. It is never silently re-fetched.
+- **Invalidation triggers (story cache only):** an explicit `refresh` flag on the orchestrator command, and `sync --clear-cache`. Run-end discard and the `profile_version` kill switch do **not** apply — the story cache lives outside the per-run `.eq-sparks/cache/<run-id>/` namespace and persists across runs by design.
 
 ---
 
@@ -138,6 +152,8 @@ A cache entry is invalidated by any of:
 2. **Skill version bump** — a new `version` changes `(skill_id, version, input_hash)`, so old outputs are unreachable by new logic. For the cross-run cache, a `profile_version` bump invalidates every entry under that profile.
 3. **Manual** — `sync --clear-cache` wipes the cache explicitly. Use after an out-of-band repo change, or when debugging a suspected stale-hit.
 
+**The story cache is exempt from triggers 1 and 2.** `.eq-sparks/cache/story-cache/<pbi>.json` is not in the per-run `<run-id>/` namespace, so it survives run-end, and the `profile_version` kill switch does not reach it. Its ONLY invalidation triggers are an explicit `refresh` flag on the orchestrator command and `sync --clear-cache` (§3). It has no TTL — present ⇒ skip ADO/Figma.
+
 The Anthropic prompt cache invalidates on its own 5-minute TTL, on any prefix byte change, and on a model/tool change (§5) — nothing to manage manually beyond keeping the prefix stable.
 
 ---
@@ -161,7 +177,7 @@ This telemetry feeds `budget-check`, which tallies tool-call and token usage aga
 | Never cache? | apply-edit/writes, run-tests, `self-evaluate`, raw LLM completions |
 | Key? | `(skill_id, version, input_hash)` per-run; `(repo, profile, profile_version)` cross-run |
 | Default scope? | Per-run, `.eq-sparks/cache/<run-id>/`, cleared at start, discarded at end |
-| Cross-run cache? | Opt-in only, OFF by default, stable PBI/epic metadata only |
+| Cross-run cache? | Opt-in only, OFF by default, stable PBI/epic metadata only. **Exception:** the story cache `story-cache/<pbi>.json` is the always-on cross-run home for PBI+Figma context, NO TTL, present ⇒ skip ADO/Figma (§3) |
 | Prompt structure? | `[ stable platform | stable agent spec | volatile task ]`, breakpoint before the task, 5-min TTL |
-| Invalidate? | Run end · skill version bump (or `profile_version` bump) · `sync --clear-cache` |
+| Invalidate? | Run end · skill version bump (or `profile_version` bump) · `sync --clear-cache`. **Story cache only:** explicit `refresh` flag or `sync --clear-cache` (no TTL, survives run-end) |
 | Observed? | Every hit/miss → console (`console-render`) + PR body; tallied by `budget-check` |

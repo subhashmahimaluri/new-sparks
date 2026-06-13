@@ -39,13 +39,15 @@ The run header that was once carried as scratchpad frontmatter now lives in its 
 {
   "run_id": "2026-06-13-scaffold-PBI-48213-a7f1",
   "pbi_id": 48213,
+  "orchestrator": "scaffold",
+  "stages": ["initiate", "ado-fetch", "figma", "dna-precheck", "preview", "generate", "review", "summary"],
   "profile": "fe-childmfe",
   "branch": "feat/saye-maturity-summary",
   "started_at": "2026-06-13T09:14:22Z"
 }
 ```
 
-`run_id` MUST equal the `<run-id>` segment of the directory path. `profile` MUST be one of the five canonical profiles defined in `CLAUDE.md` §6 and `.eq-sparks.yml.example` (`fe-rootmfe | fe-childmfe | fe-shared | fe-designsystem | be-experienceapi`) so Layer 2 lessons can be filtered against it (see below); any owning `agent` id recorded for a scratchpad section MUST be an exact id from the 23-agent roster.
+`run_id` MUST equal the `<run-id>` segment of the directory path. `profile` MUST be one of the five canonical profiles defined in `CLAUDE.md` §6 and `.eq-sparks.yml.example` (`fe-rootmfe | fe-childmfe | fe-shared | fe-designsystem | be-experienceapi`) so Layer 2 lessons can be filtered against it (see below); any owning `agent` id recorded for a scratchpad section MUST be an exact id from the 23-agent roster. **`orchestrator`** is the id of the originating slash-command (`scaffold | code-builder | fix-defect | review | unit-test | contract-sync | refactor-shared | fix-pentest | security | performance | accessibility`) and **`stages`** is the ordered stage/`task_id` list, both written at Stage 0 — together they are the resume re-entry map: `/resume` reads `orchestrator` to re-enter the correct orchestrator and walks `stages` against `ledger.jsonl` to find the first `pending` stage.
 
 ### Sections (in this order)
 
@@ -77,12 +79,12 @@ Rules:
 
 #### Resume semantics (`/resume`)
 
-`/resume <run-id>` reads `.eq-sparks/agent-memory/<run-id>/` (`scratchpad.md` + `ledger.jsonl`) and:
-1. Loads the Task ledger and Decision section — **does not** re-run `ado-context` or `figma-context` (the fetched context is already reflected in the scratchpad and any cross-run `cache-lookup`).
-2. Skips every `done` row; continues from the first `pending` row.
+`/resume <run-id>` reads `.eq-sparks/agent-memory/<run-id>/` (`metadata.json` + `scratchpad.md` + `ledger.jsonl` + last `handoff/*.json` envelope) and:
+1. Reads `metadata.orchestrator` to know **which** orchestrator started the run, and `metadata.pbi_id` to locate the **story cache** at `.eq-sparks/cache/story-cache/<pbi>.json` — the single cross-run home for the fetched PBI + Figma context. It **does not** re-run `ado-context` or `figma-context`; the fetched context is the story cache, read by pbi id.
+2. Loads the Task ledger and Decision section; skips every `done` row; re-enters `metadata.orchestrator`'s stage sequence at the first `pending` row.
 3. Re-applies the recorded `@decision` rationales rather than re-deciding, so the resumed run is consistent with the original.
 
-This is what makes the cloud→IDE handoff free: the IDE picks up the same ledger the cloud run wrote.
+This is what makes the cloud→IDE handoff (and a locally-interrupted run — same ledger replay) free: the IDE picks up the same ledger the original run wrote, and the story cache it already populated.
 
 ---
 
@@ -136,20 +138,19 @@ The abstract two-layer contract above is materialised at runtime under a single 
 ├── scratchpad.md       # Layer-1 per-run working memory: Hypothesis, Investigation log,
 │                       #   Decision, Self-eval result, Outcome (the sections above, minus
 │                       #   the ledger which is now its own file). Never cached.
-├── ledger.jsonl        # Idempotent task ledger — one JSON line per task. The resume gate.
+├── ledger.jsonl        # Idempotent task ledger — one JSON line per task, appended after EVERY
+│                       #   stage (pending→done + content_hash). The resume gate.
 ├── handoff/            # Agent→agent handoff envelopes, one JSON file per hop:
 │   └── <seq>-<from>-to-<to>.json
-├── ado-context.json    # Cloud-run artifact: the ado-context fetch (title, description,
-│                       #   acceptance criteria, tags, parent epic, Figma URLs). Replayed by
-│                       #   /resume; NEVER re-fetched.
-├── figma-context.json  # Cloud-run artifact: the figma-context fetch (frames, text, styles,
-│                       #   component names, render ref). Replayed by /resume; NEVER re-fetched.
-└── metadata.json       # { run_id, pbi_id, profile, branch, started_at } — the run header
+└── metadata.json       # { run_id, pbi_id, orchestrator, stages, profile, branch, started_at }
+                        #   — the run header. Written at Stage 0.
 ```
 
-`metadata.json` carries the same fields that were the Layer-1 scratchpad frontmatter (`run_id`, `pbi_id`, `profile`, `branch`, `started_at`); the same validation applies — `run_id` MUST equal the `<run-id>` path segment, `profile` MUST be one of the five canonical profiles, and any owning `agent` id MUST be an exact roster id.
+The fetched PBI + Figma context does **NOT** live in the run folder. It lives **cross-run** in the single story cache `.eq-sparks/cache/story-cache/<pbi>.json` (per `cache-lookup` / `cache-policy`), keyed by PBI id and located via `metadata.json`'s `pbi_id`. The agent-memory run folder holds only run state — `scratchpad.md`, `ledger.jsonl`, `handoff/`, `metadata.json`. There is no run-folder `ado-context.json` / `figma-context.json`; that competing convention is eliminated.
 
-`ado-context.json` and `figma-context.json` are written by the cloud half (the `ado-context` / `figma-context` skills) and are the saved context the **`/resume`** orchestrator replays without re-fetching (Flow 3). There is **no** standalone `self-eval.json`: a worker's `self-evaluate` result is recorded in the scratchpad **Self-eval result** section and carried forward in the `self_eval` field of its handoff envelope (`handoff/<seq>-<from>-to-<to>.json`), so `/resume` sources the last self-eval from the latest envelope, not from a separate file.
+`metadata.json` carries the run header (`run_id`, `pbi_id`, `orchestrator`, `stages`, `profile`, `branch`, `started_at`); the same validation applies — `run_id` MUST equal the `<run-id>` path segment, `profile` MUST be one of the five canonical profiles, `orchestrator` MUST be an exact orchestrator id, and any owning `agent` id MUST be an exact roster id.
+
+`/resume` replays the **story cache** via `metadata.json`'s `pbi_id` (`.eq-sparks/cache/story-cache/<pbi>.json`), and **NEVER** re-fetches ADO/Figma. There is **no** standalone `self-eval.json`: a worker's `self-evaluate` result is recorded in the scratchpad **Self-eval result** section and carried forward in the `self_eval` field of its handoff envelope (`handoff/<seq>-<from>-to-<to>.json`), so `/resume` sources the last self-eval from the latest envelope, not from a separate file.
 
 The committed starting points for these files live in **`shared/memory/templates/`** (`scratchpad.md`, `ledger.jsonl`, `metadata.json`, and a `handoff/` envelope template). The runtime files under `.eq-sparks/agent-memory/<run-id>/` are instantiated from those templates at run start and are never committed.
 
@@ -188,7 +189,8 @@ This is distinct from `/resume` (the cloud→IDE handoff of an entire run); hand
 - **`blocked`** — surfaced to `@supervisor` for the go/no-go call; not silently skipped.
 
 How it's used:
-- **`/resume`** loads `ledger.jsonl`, skips every `status: done` line, and continues from the first `pending` line — picking up exactly where the prior (cloud) run stopped without re-fetching ADO/Figma.
+- **Written incrementally.** The orchestrator (the main thread, which holds `Write`) appends a line to `ledger.jsonl` after **every** stage gate — flipping that stage's `task_id` from `pending` to `done` with its `content_hash` — so an interruption at any stage leaves the completed stages on disk. `@supervisor` specifies *what* to record (task_id, content_hash, status); the orchestrator persists it. The ledger is NOT written only at the final Summary stage.
+- **`/resume`** reads `metadata.orchestrator`, loads `ledger.jsonl`, skips every `status: done` line whose `content_hash` still matches the resolved current inputs (a changed hash flips the row back to `pending`), and re-enters that orchestrator's stage sequence at the first `pending` line — picking up exactly where the prior run stopped (cloud→IDE handoff **or** a locally-interrupted run) without re-fetching ADO/Figma.
 - **`dedup-policy`** uses the stable `task_id` + `content_hash` to keep the ledger idempotent: an unchanged task always resolves to the same row and is never repeated, while a changed `content_hash` flips the row back to `pending` so it re-executes and never replays stale work. This is the same `REUSE > EXTEND > CREATE` precedence as in the table above — no LLM output, writes, or tests are cached here (see `cache-policy`); the ledger records *whether* work happened, not a result to replay.
 
 ---

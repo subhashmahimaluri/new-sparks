@@ -143,3 +143,9 @@ No id, so Stage 1 auto-skips; the pasted **stack trace** is the defect signal. `
 Cross-cutting defect: if the fix spans a disjoint FE edit and a BFF `src/domains/<name>/` data-access fix, `@codegen` and `@db` run **concurrently**; the run barriers at the `@critic` gate before anything is called closed.
 
 `$ARGUMENTS` is a PBI/bug id (e.g. `PBI 50337`, `Bug 49120`) or a pasted stack trace. The orchestrator reads ADO only when given an id, and otherwise only the repos referenced by the defect. If the defect is vague or multiple root causes are plausible, `@decision` resolves the fork with a logged, defensible rationale before any edit.
+
+---
+
+## Resume & checkpoint (interruption-safe)
+
+This orchestrator is resumable after any interruption (IDE closed, crash, cancel). At **Stage 0** the orchestrator writes `.eq-sparks/agent-memory/<run-id>/metadata.json` with `orchestrator: "fix-defect"` and the ordered `stages` list, and seeds `ledger.jsonl` with each stage `pending`. After **every** stage passes its gate, the orchestrator — the main thread, which holds `Write`; `@supervisor` is read-only and only specifies *what* to record — **appends a `done` line** to `ledger.jsonl` with that stage's `task_id` + `content_hash` (per [dedup-policy](../shared/guardrails/dedup-policy.md) / [memory-schema](../shared/memory/memory-schema.md)). The ledger is written **incrementally after every stage, not only at the end**, so finished stages survive an interruption. PBI/Figma context is read from the no-TTL **story cache** `.eq-sparks/cache/story-cache/<pbi>.json` and is **never re-fetched**. If interrupted, **`/resume`** reads `metadata.json`, re-enters *this* orchestrator at the first `pending` stage, and skips work already marked `done`.

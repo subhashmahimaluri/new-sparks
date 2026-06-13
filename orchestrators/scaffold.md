@@ -1,117 +1,186 @@
 ---
 description: Flagship orchestrator — turn an ADO PBI (or task description) into a cross-repo-aware, governed scaffold across the EQOne MFEs and the ExperienceAPI BFF, under budget and with no repeated work.
-argument-hint: "[PBI id | task description] [skip-figma]"
+argument-hint: "[PBI id | task description] [skip-figma] [refresh]"
 allowed-tools: Read, Grep, Glob, Bash, Edit, Write, Agent, TodoWrite
-version: 1.0.0
+version: 2.0.0
 status: stable
 ---
 
-# /scaffold — the flagship orchestrator
+# /scaffold — flagship orchestrator
 
-Turns `$ARGUMENTS` — an Azure DevOps PBI id (e.g. `PBI 48217`) or a free-text task description, optionally followed by the `skip-figma` flag — into a **cross-repo-aware, governed scaffold**. It knows the EQOne topology (`eq-nexus-ui` shell, child MFEs `eq-one-saye-mfe` / `eq-one-sip-mfe` / `eq-one-shares-mfe`, `eq-one-shared`, `eq-one-design-system`) and the `ExperienceAPI` BFF (`src/domains/<name>/`), and it scaffolds into the **right** place without duplicating code.
+**You ARE `/scaffold`. Execute the steps below now — do not describe them, and never reply "use /scaffold".**
+Run them in order using your real tools (Read, Write, Bash, the ADO/Figma MCP tools, and the `Agent`
+tool to launch sub-agents). **Your very first output must be the Intro card in Step 0**, printed before
+any tool call. If a step needs an MCP server that isn't connected, say so plainly and stop at that step —
+do not bail with a generic message.
 
-This command is the **main thread**: only it launches subagents via the `Agent` tool. **Subagents never launch further subagents.** Every stage is planned, budgeted, and gated by the governance trio:
-
-- **@supervisor** owns the run — plans the stages, allocates the tool-call/token budget from `budget-policy`, enforces the guardrails (`safety-rails`, `path-policy`, `dedup-policy`, `cache-policy`), and makes the go/no-go call between stages.
-- **@critic** is the strict quality gate — returns `PASS` / `FAIL` per stage. A `FAIL` **blocks** the stage and **loops back to Generate** until fixed.
-- **@decision** resolves every ambiguity (vague PBI, missing contract, unclear placement, reuse-vs-create) with a defensible, logged rationale.
-
-The orchestrator emits the standardised three-part console via the **console-render** skill (see `console/CONSOLE-UX.md`): an **Intro card** at the start, **one block per stage**, and a **Summary** at the end. The cost model is enforced throughout — fetch/scan agents and skills read through the cache (`cache-lookup`, honouring `cache-policy`), build agents run **dna-precheck** first and **self-evaluate** last, and **budget-check** is tallied at every stage boundary against the ceiling in `budget-policy`. Agents run at their default model tier and escalate **one rung only** on low self-eval confidence (<0.7) or two critic FAILs — logged and budgeted, never auto-downgraded.
+`$ARGUMENTS` = a PBI id (`PBI 37`, `37`) **or** a free-text task, optionally followed by `skip-figma` and/or `refresh` (force a re-fetch from ADO/Figma, overwriting the story cache).
 
 ---
 
-## Staged flow
+## Step 0 — Print the Intro card (FIRST, before anything else)
 
-### Stage 0 — INITIATE
-`@supervisor` opens the run: emits the **console-render** Intro card, runs a health check (repos reachable, MCP servers up), reads `budget-policy` to set the tool-call/token ceiling, **opens the agent-memory runtime** under `.eq-sparks/agent-memory/<run-id>/` (`metadata.json`, `scratchpad.md`, `ledger.jsonl`, `handoff/`) and opens/loads the idempotent task ledger (per `memory-schema`) so a resume can skip done work, and **warms the cache** (`cache-lookup`, `cache-policy`) for stable PBI metadata and the Anthropic prompt-cache prefix (`[platform | agent spec | volatile task]`, 5-min TTL).
-- **Agents:** `@supervisor`
-- **Skills:** `console-render`, `cache-lookup`, `budget-check`
+Read `profile` and `budgets.tool_budget` from `.eq-sparks.yml` (default profile `fe-childmfe`, budget `60`).
+Print this card, filling what you know (`⏳`/`TBD` for the rest):
 
-### Stage 1 — ADO MCP Fetch
-Fetch full work-item context for the PBI in `$ARGUMENTS` via the `ado-context` skill (MCP:ado): title, description→markdown, acceptance criteria, tags, parent epic, attachments, and any **Figma URLs** in the description. Result is read through the cache (cross-run cache is opt-in for stable PBI metadata per `cache-policy`). If `$ARGUMENTS` is a free-text description rather than a PBI id, this stage is **AUTO-SKIPPED with reason** ("no PBI id supplied") and the description is taken as the task.
-- **Agents:** `@supervisor` (drives the fetch)
-- **Skills:** `ado-context`, `cache-lookup`
+```
+╔══════════════════════════════════════════════════════════════════╗
+║  eq-sparks · SCAFFOLD ORCHESTRATOR                 PBI <id|—>      ║
+╠══════════════════════════════════════════════════════════════════╣
+║  Plan  0 INITIATE → 1 ADO Fetch → 2 Figma? → 2.5 DNA              ║
+║        → 3 Preview → 4 Generate → 5 Review → 6 Summary            ║
+║  Orchestrator  scaffold        Governance  @supervisor @decision @critic
+║  Build agents  @architect @mfe @design-system @state @contract @a11y @tester
+║  Tools (MCP)   ADO <✓|✗not-connected>   Figma <conditional>       ║
+║  Profile  <profile>     Budget  <n> tool calls     Target  ≥90%   ║
+╚══════════════════════════════════════════════════════════════════╝
+```
 
-### Stage 2 — Figma MCP Fetch
-**Conditional.** Runs **IFF** a Figma URL was found in Stage 1 **AND** the `skip-figma` flag is **not** present in `$ARGUMENTS`. Fetches design context via the `figma-context` skill (MCP:figma): frame hierarchy, text, styles, referenced component names, and a render — feeding `@design-system` and `@a11y` downstream. Otherwise this stage is **AUTO-SKIPPED with reason** (one of: "no Figma URL in PBI" / "skip-figma flag set") rendered in its console block.
-- **Agents:** `@supervisor` (drives the fetch)
-- **Skills:** `figma-context`, `cache-lookup`
+Then launch `@supervisor` to plan the stages + budget and open the agent-memory runtime under
+`.eq-sparks/agent-memory/<run-id>/` (`metadata.json`, `scratchpad.md`, `ledger.jsonl`, `handoff/`) per
+[memory-schema](../shared/memory/memory-schema.md). **Write `metadata.json` NOW, at Stage 0**, with the
+run header including **`orchestrator: "scaffold"`** and the ordered **`stages`** list (the task_ids for
+Steps 1, 2, 2.5, 3, 4, 5, 6) — this is the resume re-entry map `/resume` reads to re-enter the correct
+orchestrator at the first `pending` stage. Seed `ledger.jsonl` with each stage as `status: pending`.
 
-### Stage 2.5 — DNA Pre-Check
-Before a single line is generated, run **dna-precheck** across the relevant surfaces — `eq-one-design-system`, `eq-one-shared`, the sibling MFEs (`eq-one-saye-mfe` / `eq-one-sip-mfe` / `eq-one-shares-mfe`), and/or the `ExperienceAPI` `src/domains/*` — to classify every intended artifact as **REUSE / EXTEND / CREATE** (precedence `REUSE > EXTEND > CREATE`, per `dedup-policy`). Scans are mechanical and cached.
-- **Agents:** `@scanner` (mechanical scan), `@shared-curator` (duplication/dead-code signal)
-- **Skills:** `dna-precheck`, `cache-lookup`
+**Per-stage ledger checkpoint (the resume guarantee).** After EACH of Steps 1, 2, 2.5, 3, 4, 5 passes its
+gate, the orchestrator (this main thread — it holds `Write`) MUST **append** a line to
+`.eq-sparks/agent-memory/<run-id>/ledger.jsonl` flipping that stage's `task_id` from `pending` to `done`
+with its `content_hash` (per [dedup-policy](../shared/guardrails/dedup-policy.md) mechanism 3 /
+[memory-schema](../shared/memory/memory-schema.md)). `@supervisor` specifies WHAT to record (task_id,
+content_hash, status); the orchestrator persists it. The ledger is written **incrementally after every
+stage, NOT only at Summary** — so an interruption at any stage leaves completed stages on disk and
+`/resume` continues from the first incomplete one.
 
-### Stage 3 — Scaffold Preview
-`@architect` (read-only) proposes where each piece belongs — which MFE / `eq-one-shared` / `eq-one-design-system` facade / BFF domain — and the sequence of sub-tasks. `@decision` takes the dna-precheck output and **records the reuse/extend/create call** for each artifact with a defensible rationale in the run log. `@critic` reviews the preview (`PASS`/`FAIL`); `@supervisor` makes the go/no-go before any write. Nothing is written until this gate passes. The preview travels forward as a **handoff envelope** (`handoff` skill) carrying the placement decisions and `artifacts.{reuse,extend,create}`, which `@supervisor` routes to the Stage 4 build agents so they inherit scope without re-deriving it.
-- **Agents:** `@architect`, `@decision`, `@critic`, `@supervisor`
-- **Skills:** `console-render`
+If the ledger shows this PBI was already scaffolded, say so and offer `/resume` instead of redoing it
+(dedup-policy).
 
-### Stage 4 — Generate
-Build agents execute the approved plan, honouring `path-policy` (write only where the plan allows) and `dedup-policy` (anything reused **moves to** `eq-one-shared`). Each build agent reads the latest **handoff envelope** addressed to it, runs its **autoresearch loop** (`methodology/autoresearch-loop.md`) with **dna-precheck** at entry (or consumes Stage 2.5's cached result) and **self-evaluate** as the mandatory last step, then emits an envelope (`handoff` skill) to the next agent / `@supervisor` before handing off.
-- **Frontend MFE work:** `@mfe` scaffolds/extends the child MFE and wires it into the `eq-nexus-ui` shell via the module-federation contract.
-- **BFF domain work:** `@domain-folder` scaffolds the independently-deployable `src/domains/<name>/`; `@bff-shaper` paints & polishes request/response shapes for the UI; `@downstream-connector` wires downstream clients with Polly/timeouts/retries; `@contract-publisher` publishes the per-domain OpenAPI/Swagger contract.
-- **General / glue code:** `@codegen` for anything no specialist owns.
-- **Frontend specialists:** `@design-system` forces consumption of `eq-one-design-system` (blocks hand-rolled equivalents), `@state` applies EQ Zustand patterns (common stores → `eq-one-shared`), `@contract` aligns FE types/clients to the BFF contract, `@shared-curator` moves common code to `eq-one-shared`.
-- **Skills:** `dna-precheck` (entry), `self-evaluate` (exit), `cache-lookup`
+## Step 1 — Resolve the PBI into the **story cache**
 
-### Stage 5 — Review
-`@reviewer` catches the cheap-to-find correctness/style issues first (sonnet) so the opus `@critic` spends budget only on hard calls. `@critic` then returns a strict `PASS` / `FAIL`. **On `FAIL`, loop back to Stage 4 — Generate** with the required changes; the build agent that owns the artifact escalates one tier only after two critic FAILs (logged + budgeted). `@supervisor` runs `budget-check` and makes the final go/no-go.
-- **Agents:** `@reviewer`, `@critic`, `@supervisor`
-- **Skills:** `budget-check`, `console-render`
+The story cache is the single source of PBI truth for the run. Path: **`.eq-sparks/cache/story-cache/<pbi>.json`**.
 
-### Stage 6 — Summary
-`@supervisor` **aggregates every `handoff/*.json` envelope** in `seq` order (per `handoff-protocol`) and emits the **console-render** Summary block: the stage chain, artifacts created/extended/reused, where each landed (MFE / shared / design-system / BFF domain), critic verdicts and any loop-backs, `@decision` rationales, escalations, open items, and the final `budget-check` tally vs the `budget-policy` ceiling. The `agent-memory` ledger is closed for clean `/resume`.
-- **Agents:** `@supervisor`, `@docs` (READMEs / JSDoc / XML-doc / changelogs to match the diff)
-- **Skills:** `console-render`, `budget-check`
+1. Parse `$ARGUMENTS`. **If it is free text** (no PBI id): print `Stage 1 — AUTO-SKIPPED (no PBI id; using the task description)`, synthesise a minimal story-cache `{ "pbi": null, "title": <text>, "source": "free-text", ... }`, and go to Step 2.
+2. **If a PBI id is present:** check whether `.eq-sparks/cache/story-cache/<pbi>.json` already exists.
+   - **Exists AND `refresh` is NOT in `$ARGUMENTS`** → print `Status: ✅ Cache hit (story-cache/<pbi>.json)`, load it, **skip the ADO call unconditionally — regardless of the file's age** (there is no TTL; present ⇒ skip is the default, per the story-cache clause in [cache-policy](../shared/memory/cache-policy.md) §3). This is the no-repeat / token-saving guarantee.
+   - **Missing, OR `refresh` is in `$ARGUMENTS`** → call the **ADO MCP** via the [ado-context](../skills/ado-context/SKILL.md) skill to fetch the work item, then **write (overwrite on `refresh`)** `.eq-sparks/cache/story-cache/<pbi>.json` with this shape:
+     ```json
+     {
+       "pbi": "37",
+       "title": "...",
+       "state": "Active",
+       "description_md": "...",
+       "acceptance_criteria": ["AC1 ...", "AC2 ..."],
+       "tags": ["..."],
+       "parent_epic": { "id": "...", "title": "..." },
+       "figma_urls": ["https://www.figma.com/design/..."],
+       "figma": {},
+       "fetched_at": "<iso-8601>",
+       "source": "ado-live"
+     }
+     ```
+3. **If the ADO MCP is not connected** (no `ado` server, or `mcp_unavailable`/`auth_required`): print
+   `Stage 1 — BLOCKED: ADO MCP not connected. Configure the ado server in .vscode/mcp.json and sign in (MANUAL-STEPS D1), then re-run.` and **stop**. Do not invent PBI fields.
+4. Print the Stage 1 block: Title, Parent, AC count, and `Figma links: <n> found` (so the reader sees whether Stage 2 will run).
+
+Every later stage reads `story-cache/<pbi>.json`; no agent re-fetches from ADO.
+
+## Step 2 — Figma (CONDITIONAL — only when the PBI actually links a design)
+
+- **Run Figma only if** `story-cache.figma_urls` is **non-empty** AND `skip-figma` is **not** in `$ARGUMENTS`.
+  Then call the **Figma MCP** via [figma-context](../skills/figma-context/SKILL.md) for each URL and **merge** the
+  design metadata back into the same json under `"figma": { "<url>": { frames, components, text, colors } }`.
+- **Otherwise** print `Stage 2 — AUTO-SKIPPED (<reason>)` where reason is `no Figma link in PBI` or `skip-figma flag set`, and **do not invoke or start the Figma MCP**.
+
+> The PBI in the story cache decides this — not the IDE. If VS Code separately pops "MCP servers figma…
+> may have new tools, start them now?" at session start, that is the **IDE** prompting for configured
+> servers, not this orchestrator. Dismiss it; to stop it recurring, remove servers you don't use from
+> `.vscode/mcp.json` (keep only `ado`, and `figma` if your team designs in Figma).
+
+## Step 2.5 — DNA pre-check (before any code)
+
+Launch `@scanner` (+ `@shared-curator`) to run [dna-precheck](../skills/dna-precheck/SKILL.md) across
+`eq-one-design-system`, `eq-one-shared`, the sibling MFEs, and/or `ExperienceAPI/src/domains/*`, classifying
+each intended artifact **REUSE / EXTEND / CREATE** (precedence `REUSE > EXTEND > CREATE`, per
+[dedup-policy](../shared/guardrails/dedup-policy.md)). Print the verdicts in the stage block.
+
+## Step 3 — Preview (governance gate — nothing is written yet)
+
+`@architect` proposes placement (which MFE / `eq-one-shared` / `eq-one-design-system` / BFF domain) and the
+sub-task sequence; `@decision` records each reuse/extend/create call with a rationale. `@critic` reviews
+(`PASS`/`FAIL`); `@supervisor` makes the go/no-go. The approved plan travels forward as a **handoff envelope**
+([handoff](../skills/handoff/SKILL.md)) carrying `artifacts.{reuse,extend,create}` + placement, so Step 4
+agents inherit scope without re-deriving it. **Do not write code until this gate is PASS.**
+
+## Step 4 — Generate (launch the specialists)
+
+Launch the build agents the plan calls for — `@mfe`, `@state`, `@design-system`, `@contract`, `@codegen`
+(FE); `@domain-folder`, `@bff-shaper`, `@downstream-connector`, `@contract-publisher`, `@db` (BFF);
+`@shared-curator` for move-to-shared. **Independent agents run in parallel**
+([parallelization](../methodology/parallelization.md)); the `@critic` gate is the barrier. Each agent reads
+the story cache + its inbound handoff envelope, runs its autoresearch loop with `dna-precheck` first and
+`self-evaluate` last, honours [path-policy](../shared/guardrails/path-policy.md) and dedup-policy, then emits
+its outbound envelope.
+
+## Step 5 — Review
+
+`@reviewer` first (cheap correctness/style), then `@critic` for strict `PASS`/`FAIL`. **On FAIL, loop back to
+Step 4** with the required changes (escalate one tier after two FAILs, per
+[model-routing-policy](../shared/guardrails/model-routing-policy.md)). `@supervisor` runs `budget-check`.
+
+## Step 6 — Print the Summary card
+
+`@supervisor` aggregates every `handoff/*.json` envelope and prints:
+
+```
+╔══════════════════════════════════════════════════════════════════╗
+║  ✅ SCAFFOLD COMPLETE — PBI <id>                                  ║
+╠══════════════════════════════════════════════════════════════════╣
+║  Acceptance criteria   <m>/<n> mapped       Coverage <pct>        ║
+║  @critic               PASS (<k> revisions)   @supervisor  GO      ║
+║  Cross-repo actions    REUSE <…>  EXTEND <…>  CREATE <…>          ║
+║  Artifacts             <files / where they landed>                ║
+║  Budget used           <x>/<budget> tool calls · ~$<cost>         ║
+║  Confidence            <pct>      Ready for: developer review     ║
+╚══════════════════════════════════════════════════════════════════╝
+```
+
+Append the final Summary-stage line to the ledger and mark the run complete. (The ledger has already
+been checkpointed after every prior stage per Step 0 — this is the last append, not the first write.)
 
 ---
 
 ## Handoff & memory
 
-The stages above compose through **structured handoff envelopes**, not free text. As each stage's agent finishes, it writes a single JSON envelope via the **`handoff`** skill to `.eq-sparks/agent-memory/<run-id>/handoff/<seq>-<from>-to-<to>.json` (schema + routing in `methodology/handoff-protocol.md`), declaring its `to_agent`, `decisions`, `artifacts.{reuse,extend,create}`, `self_eval`, `budget`, and `next`. The orchestrator is the **router**: it reads the closing envelope and launches the named recipient for the next stage, pointing it at the latest envelope addressed to it — agents never spawn their own successors.
-
-- **Memory open (Stage 0).** `@supervisor` opens/updates the agent-memory runtime per the `memory-schema` runtime layout (`shared/memory/memory-schema.md`): `metadata.json`, the per-run `scratchpad.md`, the idempotent `ledger.jsonl`, and the `handoff/` envelope dir — all under `.eq-sparks/agent-memory/<run-id>/` (gitignored), instantiated from `shared/memory/templates/`.
-- **Per-stage build (Stage 4).** Build agents run the **autoresearch (A-Rag) loop** (`methodology/autoresearch-loop.md`): they read the inbound envelope (loop step 1's input), investigate through the cache, act surgically, and **self-evaluate** before each handoff — the diff-based `self-evaluate` for `writesDiff` agents, a self-assessment for read-only/gate agents — then emit the outbound envelope (loop step 9).
-- **Aggregate (Stage 6).** `@supervisor` reads **every** `handoff/*.json` envelope in `seq` order and rolls the stage chain, decisions, aggregate artifacts, open items, and final budget into the `console-render` Summary, then closes the ledger for a clean `/resume`.
-
-This is intra-run, agent→agent composition — distinct from `/resume` (the cloud→IDE Flow-3 handoff of the whole run), which replays the same ledger and envelopes this command wrote.
-
----
-
-## Steps
-
-1. **Parse `$ARGUMENTS`.** Detect a PBI id vs free-text; detect the `skip-figma` flag. Launch `@supervisor` (Stage 0) to emit the Intro card, run health checks, set the budget from `budget-policy`, open the `agent-memory` ledger, and warm the cache.
-2. **Stage 1 — ADO fetch.** Launch `@supervisor` to run `ado-context` for the PBI; cache the result. Auto-skip with reason if `$ARGUMENTS` is free text.
-3. **Stage 2 — Figma fetch.** Only if a Figma URL exists and `skip-figma` is absent, launch `@supervisor` to run `figma-context`; else emit an AUTO-SKIPPED block with the reason.
-4. **Stage 2.5 — DNA pre-check.** Launch `@scanner` and `@shared-curator` to run `dna-precheck` across design-system / shared / siblings / BFF domains; classify REUSE/EXTEND/CREATE.
-5. **Stage 3 — Preview.** Launch `@architect` (placement + sub-task sequence) and `@decision` (record reuse/extend/create rationale). Gate with `@critic`; `@supervisor` go/no-go. Do not write until PASS.
-6. **Stage 4 — Generate.** Launch the relevant build agents — `@mfe`, `@domain-folder`, `@bff-shaper`, `@downstream-connector`, `@contract-publisher`, `@codegen`, `@design-system`, `@state`, `@contract`, `@shared-curator` — each reading the inbound `handoff` envelope, running its autoresearch loop with `dna-precheck` first and `self-evaluate` last, emitting the next envelope, honouring `path-policy` and `dedup-policy`.
-7. **Stage 5 — Review.** Launch `@reviewer`, then `@critic` for strict PASS/FAIL. On FAIL, return to step 6 with required changes (escalate one tier after two FAILs). `@supervisor` runs `budget-check` and gives go/no-go.
-8. **Stage 6 — Summary.** Launch `@supervisor` (+ `@docs`) to aggregate all `handoff/*.json` envelopes, emit the `console-render` Summary, final `budget-check`, and close the `agent-memory` ledger.
-
----
+Stages compose through **structured handoff envelopes**, not free text. Each agent writes one JSON envelope
+via the [handoff](../skills/handoff/SKILL.md) skill to `.eq-sparks/agent-memory/<run-id>/handoff/<seq>-<from>-to-<to>.json`
+(schema + routing in [handoff-protocol](../methodology/handoff-protocol.md)). The orchestrator is the router:
+it reads the closing envelope and launches the named recipient, pointing it at the latest envelope addressed to
+it — agents never spawn their own successors. This is intra-run composition, distinct from `/resume` (the
+cloud→IDE replay of this same ledger + the story cache).
 
 ## Usage
 
 ```
-/scaffold PBI 48217
+/scaffold PBI 37
 ```
-Fetch ADO work-item 48217, follow any Figma URL it contains, DNA-pre-check across the estate, then scaffold into the correct MFE/shared/design-system/BFF domain — governed end to end.
+Fetch PBI 37 into `story-cache/37.json`, follow a Figma link only if the PBI has one, DNA-pre-check, then
+scaffold into the right MFE/shared/design-system/BFF domain — governed end to end.
 
 ```
-/scaffold PBI 48217 skip-figma
+/scaffold PBI 37 skip-figma
 ```
-Same flow, but Stage 2 is AUTO-SKIPPED (`skip-figma flag set`) — useful when the design is unchanged or unavailable.
+Same, but Stage 2 is AUTO-SKIPPED.
 
 ```
-/scaffold Add a SIP contributions summary panel to the SIP MFE backed by a new ExperienceAPI sip domain endpoint
+/scaffold PBI 37 refresh
 ```
-No PBI id, so Stage 1 auto-skips; the description drives the run. `@decision` resolves placement and reuse-vs-create from the topology and the dna-precheck.
+Force a re-fetch of PBI 37 from ADO (and Figma), overwriting `story-cache/37.json`. Without `refresh`, an
+existing story cache is reused unconditionally (no ADO call, no TTL).
 
 ```
-/scaffold PBI 50611 skip-figma
+/scaffold Add a SIP contributions summary panel to the SIP MFE backed by a new ExperienceAPI sip endpoint
 ```
-Cross-repo BFF-heavy task: scaffolds `src/domains/<name>/` via `@domain-folder`, shapes via `@bff-shaper`, wires downstream via `@downstream-connector`, publishes the contract via `@contract-publisher`, and aligns FE types via `@contract`.
+No PBI id → Stage 1 auto-skips; the description drives the run.
 
-> To continue a prior run without re-fetching ADO/Figma, use **/resume** (it reads the `agent-memory` ledger this command wrote).
+> Requires the **ADO MCP** connected for PBI runs (MANUAL-STEPS D1). Free-text runs need no MCP.
+> To continue a prior run without re-fetching, use **/resume** (it reads the ledger + story cache).

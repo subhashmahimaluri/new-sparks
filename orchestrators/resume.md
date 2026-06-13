@@ -1,5 +1,5 @@
 ---
-description: Resume a prior eq-sparks run from its cloud->IDE handoff (Flow 3) WITHOUT re-fetching ADO or Figma — replay the saved context, re-hypothesise the remaining work, and continue the governed sequence to completion.
+description: Resume a prior eq-sparks run — a cloud->IDE handoff (Flow 3) OR a locally-interrupted run (IDE closed / crash / cancel) — WITHOUT re-fetching ADO or Figma. Read the story cache + ledger + last handoff envelope, re-enter the orchestrator named in metadata.json at the first pending stage, and continue the governed sequence to completion.
 argument-hint: "[run-id | latest]"
 allowed-tools: Read, Grep, Glob, Bash, Edit, Write, Agent, TodoWrite
 version: 1.0.0
@@ -9,9 +9,9 @@ uses_skills: cache-lookup, console-render, budget-check, dna-precheck, self-eval
 
 # /resume — continue a prior run, no re-fetch
 
-Resume the run identified by `$ARGUMENTS` (a concrete `run-id`, or `latest` to pick the most recent run under `.eq-sparks/agent-memory/`). This is the **Flow 3 cloud->IDE handoff**: a run that started in the cloud (often via `/scaffold` or `/review`) is picked up locally and driven to completion **without spending budget on re-fetching context**.
+Resume the run identified by `$ARGUMENTS` (a concrete `run-id`, or `latest` to pick the most recent run under `.eq-sparks/agent-memory/`). `/resume` handles **BOTH** triggers with the **same ledger replay**: (1) the **Flow 3 cloud->IDE handoff** — a run that started in the cloud (often via `/scaffold` or `/review`) picked up locally; and (2) a **locally-interrupted run** — the IDE was closed, the process crashed, or the run was cancelled mid-stage. In either case the run is driven to completion **without spending budget on re-fetching context**. The replay logic is identical; only the trigger differs.
 
-**Hard rule — never re-fetch.** In resume mode this command MUST NOT call the ADO MCP (`ado-context`) or the Figma MCP (`figma-context`). The work-item and design context already live on disk as `ado-context.json` and `figma-context.json` in the run folder. Replaying them is free; re-fetching them is wasted budget and risks drift against what the cloud half already reasoned over. If an artifact is missing, surface that to `@decision` — do not silently re-call the MCP.
+**Hard rule — never re-fetch.** In resume mode this command MUST NOT call the ADO MCP (`ado-context`) or the Figma MCP (`figma-context`). The work-item and design context already live cross-run in the **story cache** `.eq-sparks/cache/story-cache/<pbi>.json` (the single home for PBI + Figma context per [cache-policy](../shared/memory/cache-policy.md) §3), located via the `pbi_id` recorded in `metadata.json`. Replaying it is free; re-fetching is wasted budget and risks drift against what the original run already reasoned over. If the story cache is missing, surface that to `@decision` (proceed-with-gap vs. an explicit `refresh` re-run) — do **not** silently re-call the MCP.
 
 The whole run is governed and observable:
 - **@supervisor** (opus) re-plans the *remaining* stages, re-allocates the leftover tool-call/token budget from `budget-policy`, and makes the go/no-go call between every stage.
@@ -28,24 +28,26 @@ The whole run is governed and observable:
 Emit the **Intro card** via **console-render**: resolved run-id, the resume mode banner ("REPLAY — no ADO/Figma re-fetch"), and the budget headroom remaining for the run. No agent launched here. **@supervisor** opens/updates the agent-memory ledger for the resumed run (`scratchpad.md`, `ledger.jsonl`, `metadata.json`, `handoff/` per the `memory-schema` runtime layout, `shared/memory/memory-schema.md`) so envelopes and ledger state carry forward under the same `<run-id>`.
 
 ### Stage 1 — Replay saved context (Read-only, no MCP)
-Read the run folder `.eq-sparks/agent-memory/<run-id>/` directly with `Read`/`Glob`. The `/resume` re-entry reads the agent-memory **`ledger.jsonl`** (skipping every `status: done` task) and the **last `handoff/*.json` envelope** to reconstruct exactly who handed what to whom and where the run stopped — this is the cloud→IDE replay, distinct from the in-run agent→agent handoff routed between stages:
-- `metadata.json` — run identity, originating command, target repos, stage ledger (what is DONE vs PENDING).
-- `scratchpad.md` — the in-flight reasoning the cloud half left behind.
+Read the run folder `.eq-sparks/agent-memory/<run-id>/` directly with `Read`/`Glob`. The `/resume` re-entry reads the agent-memory **`ledger.jsonl`** (skipping every `status: done` task) and the **last `handoff/*.json` envelope** to reconstruct exactly who handed what to whom and where the run stopped — this replay covers both the cloud→IDE handoff and a locally-interrupted run, distinct from the in-run agent→agent handoff routed between stages:
+- `metadata.json` — the run header: `run_id`, **`orchestrator`** (which command started the run — drives re-entry in Stage 2/4), **`stages`** (the ordered stage/task_id list — the re-entry map), `pbi_id` (the key for locating the story cache), `profile`, `branch`.
+- `ledger.jsonl` — the idempotent task ledger: which `stages` are `done` vs `pending` vs `blocked`. **Skip `done` only when its `content_hash` still matches the resolved current inputs** (per [dedup-policy](../shared/guardrails/dedup-policy.md)); a changed hash flips the row back to `pending` and it re-executes. Continue from the first `pending` stage.
+- `scratchpad.md` — the in-flight reasoning the prior run left behind.
 - the **last `handoff/*.json` envelope's `self_eval` field** — the last worker's `self-evaluate` output (confidence, open risks). There is no standalone `self-eval.json`; per `memory-schema`, self-eval lives in the scratchpad and is carried forward in the envelope.
-- `ado-context.json` — the work-item context **already fetched** (title, description, acceptance criteria, tags, parent epic, Figma URLs).
-- `figma-context.json` — the design context **already fetched** (frames, text, styles, component names, render ref).
+- the **story cache** `.eq-sparks/cache/story-cache/<pbi>.json` — keyed by `metadata.json`'s `pbi_id`, the single home for **both** the work-item context (title, description, acceptance criteria, tags, parent epic, Figma URLs) **and** the design context merged under the `figma` key (frames, text, styles, component names, render ref). This is what was already fetched; `/resume` reads it, never re-fetches.
 
-Call **cache-lookup** to pull any stable PBI metadata from the cross-run cache instead of recomputing it. **Do not** call `ado-context` or `figma-context`.
-**@supervisor** validates the artifacts are present and coherent, reconstructs the stage ledger, and reports headroom via **budget-check**. If an artifact is missing or stale, hand the fork to **@decision** for a logged call (proceed-with-gap vs. abort-and-rerun) — never re-fetch to "fix" it.
+**Do not** call `ado-context` or `figma-context`. (`cache-lookup` may be used to read the story cache, but never to trigger an MCP fetch.)
+**@supervisor** validates the story cache + ledger + last envelope are present and coherent, reconstructs the stage ledger against `metadata.stages`, and reports headroom via **budget-check**. If the story cache is missing, hand the fork to **@decision** for a logged call (proceed-with-gap vs. abort-and-rerun, or advise an explicit `/<orchestrator> <pbi> refresh`) — never re-fetch to "fix" it.
 
-### Stage 2 — Re-plan the remaining work (@supervisor)
-**@supervisor** states a **NEW hypothesis** for the *remaining* work only — the cloud half's plan may be partial or stale. It maps PENDING ledger items to the normal downstream sequence, re-allocates the leftover budget across them (`budget-policy`), and records the plan to the run log. **@decision** is consulted on any ambiguity in scope or code placement. **@critic** gates the plan PASS/FAIL before any producing work starts; a FAIL loops back to `@supervisor`.
+### Stage 2 — Re-enter the originating orchestrator & re-plan the remaining work (@supervisor)
+Read **`metadata.orchestrator`** to know WHICH orchestrator started the run (`scaffold`, `code-builder`, `fix-defect`, `review`, `unit-test`, `contract-sync`, `refactor-shared`, `fix-pentest`, `security`, `performance`, `accessibility`). `/resume` **re-enters that named orchestrator's stage definition** — it does NOT run a generic one-size flow. Map `metadata.stages` onto `ledger.jsonl` and resume that orchestrator's sequence at the **first `pending` stage** (e.g. for `scaffold`, re-enter at the first pending of its Steps 1→6; for `fix-defect`, at the first pending of its own stage list).
+
+**@supervisor** states a **NEW hypothesis** for the *remaining* (pending) stages only — the prior plan may be partial or stale. It re-allocates the leftover budget across them (`budget-policy`) and records the plan to the run log. **@decision** is consulted on any ambiguity in scope or code placement. **@critic** gates the plan PASS/FAIL before any producing work starts; a FAIL loops back to `@supervisor`. The orchestrator continues to append a `done` line to `ledger.jsonl` after **every** resumed stage, so a second interruption is equally resumable.
 
 ### Stage 3 — Pre-check before resuming production (dna-precheck)
 Before any build agent writes a line, the resumed producers run the **dna-precheck** skill against the live repos to re-classify each remaining item **REUSE > EXTEND > CREATE** (`dedup-policy`) — the tree may have moved since the cloud run. The idempotent task ledger means **DONE work is skipped**, not redone. **@critic** gates the classification.
 
-### Stage 4 — Continue the normal sequence (producers)
-Drive the PENDING items through the standard governed sequence, launching only the agents the originating command requires via the `Agent` tool. Depending on the run type that may include:
+### Stage 4 — Continue the re-entered orchestrator's sequence (producers)
+Drive the PENDING stages through the **re-entered orchestrator's** governed sequence (the one named in `metadata.orchestrator`), launching only the agents that orchestrator's remaining stages require via the `Agent` tool. Depending on the orchestrator that may include:
 - **@architect** (read-only) — confirm where the remaining change belongs (MFE / `eq-one-shared` / `eq-one-design-system` / BFF `src/domains/<name>/`) and the sub-task order.
 - Build/specialist producers — **@codegen**, **@mfe**, **@shared-curator** (via **move-to-shared**), **@design-system**, **@state**, **@contract** (via **contract-diff**), **@domain-folder**, **@bff-shaper**, **@downstream-connector**, **@contract-publisher**.
 - Verification — **@reviewer**, **@tester**, **@integration-tester**, **@contract-tester**, **@security**, **@scanner**, **@perf**, **@a11y**, **@docs**.
@@ -62,7 +64,7 @@ Every build producer runs its **autoresearch loop** (`methodology/autoresearch-l
 Two distinct mechanisms operate in a resumed run; do not conflate them.
 
 - **In-run agent→agent handoff.** Between stages the orchestrator routes a structured **handoff** envelope (the `handoff` skill, schema + routing in `methodology/handoff-protocol.md`) from one agent to the next — `task`, `hypothesis`, `decisions`, and the `dna-precheck` `artifacts.{reuse,extend,create}` flow forward as typed JSON, never free text. Each build agent runs its **autoresearch loop** (`methodology/autoresearch-loop.md`) and **self-evaluate**s before emitting its envelope (loop step 9); the receiving agent reads the latest envelope addressed to it as its first action.
-- **Cloud→IDE `/resume` handoff (this command).** `/resume` re-enters a *stopped* run: at Stage 0 **@supervisor** opens/updates the agent-memory ledger (the `scratchpad.md`, `ledger.jsonl`, `metadata.json`, `handoff/` runtime layout in `shared/memory/memory-schema.md`); at Stage 1 the command reads **`ledger.jsonl`** (skipping every `status: done` task) and the **last `handoff/*.json` envelope** to reconstruct where the run stopped, then continues from the first `pending` task without re-fetching ADO/Figma. This whole-run, cross-environment replay is the contrast to the per-stage in-run envelope above.
+- **`/resume` handoff (this command).** `/resume` re-enters a *stopped* run — whether stopped by a cloud→IDE boundary or a local interruption (IDE closed / crash / cancel): at Stage 0 **@supervisor** opens/updates the agent-memory runtime (the `scratchpad.md`, `ledger.jsonl`, `metadata.json`, `handoff/` layout in `shared/memory/memory-schema.md`); at Stage 1 the command reads **`metadata.json`** (for `orchestrator` + `pbi_id`), the **story cache** `.eq-sparks/cache/story-cache/<pbi>.json` (the saved PBI + Figma context — never re-fetched), **`ledger.jsonl`** (skipping every `status: done` task whose `content_hash` is unchanged), and the **last `handoff/*.json` envelope**; at Stage 2 it re-enters the orchestrator named in `metadata.orchestrator` at the first `pending` stage. This whole-run replay is the contrast to the per-stage in-run envelope above.
 
 At the final stage **@supervisor** aggregates **all** envelopes (prior cloud-run plus this resume) into the **console-render** Summary, so the run's reasoning trail is reconstructed from on-disk record rather than recollection.
 
@@ -72,10 +74,10 @@ At the final stage **@supervisor** aggregates **all** envelopes (prior cloud-run
 
 1. **Resolve `$ARGUMENTS`** to a run folder: a literal `run-id` -> `.eq-sparks/agent-memory/<run-id>/`; `latest` -> the most recently modified folder under `.eq-sparks/agent-memory/`. Abort with a clear message if none exists.
 2. **Emit the Intro card** (Stage 0) via **console-render** with the resume banner and budget headroom.
-3. **Replay context** (Stage 1): read the agent-memory **`ledger.jsonl`** (skip `status: done`) and the **last `handoff/*.json` envelope** (its `self_eval` field is the last worker's self-eval — there is no standalone `self-eval.json`), then `Read` `metadata.json`, `scratchpad.md`, `ado-context.json`, `figma-context.json`; pull stable metadata via **cache-lookup**. **Never** call `ado-context` / `figma-context`. Missing/stale artifact -> launch **@decision**.
-4. **Re-plan** (Stage 2): launch **@supervisor** to state a NEW hypothesis for the remaining work and re-budget it; **@critic** gates PASS/FAIL, loop back on FAIL.
+3. **Replay context** (Stage 1): `Read` `metadata.json` (for `orchestrator`, `stages`, `pbi_id`), then the **story cache** `.eq-sparks/cache/story-cache/<pbi>.json` (the saved PBI + Figma context, located via `pbi_id`), the agent-memory **`ledger.jsonl`** (skip each `status: done` row whose `content_hash` is unchanged; a changed hash re-runs it), the **last `handoff/*.json` envelope** (its `self_eval` field is the last worker's self-eval — there is no standalone `self-eval.json`), and `scratchpad.md`. **Never** call `ado-context` / `figma-context`. Missing story cache -> launch **@decision** (proceed-with-gap or advise an explicit `refresh` re-run).
+4. **Re-enter & re-plan** (Stage 2): read `metadata.orchestrator`, re-enter THAT orchestrator's stage sequence at the first `pending` ledger stage (mapped against `metadata.stages`); launch **@supervisor** to state a NEW hypothesis for the remaining stages and re-budget them; **@critic** gates PASS/FAIL, loop back on FAIL.
 5. **Pre-check** (Stage 3): resumed producers run **dna-precheck** to re-classify REUSE/EXTEND/CREATE and skip DONE ledger items; **@critic** gates.
-6. **Continue the sequence** (Stage 4): launch the required producer + verification agents via the `Agent` tool; each runs its **autoresearch loop** (**dna-precheck** first, **self-evaluate** last) and emits a **handoff** envelope the orchestrator routes to the next agent; **console-render** per stage; **@critic** PASS/FAIL routes the envelope back on FAIL; **@supervisor** go/no-go and **budget-check** between stages; **@decision** resolves forks.
+6. **Continue the sequence** (Stage 4): drive the re-entered orchestrator's remaining stages — launch the producer + verification agents that orchestrator requires via the `Agent` tool; each runs its **autoresearch loop** (**dna-precheck** first, **self-evaluate** last) and emits a **handoff** envelope the orchestrator routes to the next agent; **console-render** per stage; **@critic** PASS/FAIL routes the envelope back on FAIL; **@supervisor** go/no-go and **budget-check** between stages; **@decision** resolves forks. **After every resumed stage the orchestrator appends a `status: done` line (with `content_hash`) to `ledger.jsonl`** so a second interruption resumes cleanly.
 7. **Summarise** (Stage 5): **@supervisor** aggregates all `handoff/*.json` envelopes; **console-render** emits the Summary; persist updated state to the run folder and agent-memory ledger.
 
 ---
@@ -85,14 +87,14 @@ At the final stage **@supervisor** aggregates **all** envelopes (prior cloud-run
 ```
 /resume latest
 ```
-Resume the most recent run under `.eq-sparks/agent-memory/`, replaying its saved ADO/Figma context.
+Resume the most recent run under `.eq-sparks/agent-memory/`, replaying the story cache (via `metadata.pbi_id`) and re-entering the orchestrator named in `metadata.orchestrator` at the first pending stage.
 
 ```
 /resume 2026-06-13-scaffold-saye-7421
 ```
-Resume a specific run by id — continues exactly where the cloud half left off, no re-fetch.
+Resume a specific run by id — re-enters `/scaffold` and continues exactly where it stopped, no re-fetch. Works the same whether the run stopped at a cloud→IDE boundary or was interrupted locally (IDE closed / crash / cancel).
 
 ```
 /resume R-9f3a2c
 ```
-Resume by short run-id; if `ado-context.json` or `figma-context.json` is missing, `@decision` records a defensible proceed-or-abort call rather than re-calling the MCP.
+Resume a locally-interrupted run by short run-id; reads `.eq-sparks/cache/story-cache/<pbi>.json` (located via `metadata.pbi_id`) for the saved context. If the story cache is missing, `@decision` records a defensible proceed-or-abort call (or advises an explicit `refresh` re-run) rather than re-calling the MCP.

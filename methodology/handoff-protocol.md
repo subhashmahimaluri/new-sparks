@@ -81,7 +81,7 @@ Envelopes live under the gitignored agent-memory runtime for the run:
 .eq-sparks/agent-memory/<run-id>/
 ├─ scratchpad.md                              # Layer-1 working memory (hypotheses, log, decisions, self-eval, outcome)
 ├─ ledger.jsonl                               # idempotent task ledger — {task_id, content_hash, status, agent, ts}
-├─ metadata.json                              # { run_id, pbi_id, profile, branch, started_at }
+├─ metadata.json                              # { run_id, pbi_id, orchestrator, stages, profile, branch, started_at }
 └─ handoff/
    ├─ 0001-supervisor-to-architect.json
    ├─ 0002-architect-to-codegen.json
@@ -215,7 +215,7 @@ These are different mechanisms and must not be conflated.
 | | Agent → agent handoff (this doc) | `/resume` (Flow 3) |
 |---|---|---|
 | **Scope** | Between two agents, **within one live run** | Between two *environments* — cloud run → IDE pick-up |
-| **Carrier** | A `handoff/*.json` envelope, written/read via the [`handoff`](../skills/handoff/SKILL.md) skill | The whole run folder: `metadata.json`, `scratchpad.md`, the `ledger.jsonl`, and saved `ado-context`/`figma-context` |
+| **Carrier** | A `handoff/*.json` envelope, written/read via the [`handoff`](../skills/handoff/SKILL.md) skill | The run folder (`metadata.json`, `scratchpad.md`, `ledger.jsonl`, `handoff/`) plus the cross-run **story cache** `.eq-sparks/cache/story-cache/<pbi>.json` (the saved PBI + Figma context), located via `metadata.pbi_id` |
 | **Trigger** | Every stage boundary, automatically (A-Rag loop step 9) | A developer running [`/resume <run-id>`](../orchestrators/resume.md) to continue a stopped/cloud run locally |
 | **Re-fetch?** | N/A — same run, context already in memory | **Never re-fetches ADO/Figma**; replays the saved context |
 | **Gate** | The idempotent step in a stage chain | The idempotent *ledger* skips `status: done` tasks and continues from `pending` |

@@ -1,7 +1,9 @@
 {
-  "_comment": "TEMPLATE — the run header (the fields that were the Layer-1 scratchpad frontmatter). Canonical runtime location: .eq-sparks/agent-memory/<run-id>/metadata.json (gitignored). Copied at run start; replace every <placeholder>. Contract: shared/memory/memory-schema.md. run_id MUST equal the <run-id> path segment; profile MUST be one of the five canonical profiles (fe-rootmfe | fe-childmfe | fe-shared | fe-designsystem | be-experienceapi); any owning agent id MUST be an exact roster id.",
+  "_comment": "TEMPLATE — the run header (the fields that were the Layer-1 scratchpad frontmatter). Canonical runtime location: .eq-sparks/agent-memory/<run-id>/metadata.json (gitignored). Copied at run start; replace every <placeholder>. Contract: shared/memory/memory-schema.md. run_id MUST equal the <run-id> path segment; profile MUST be one of the five canonical profiles (fe-rootmfe | fe-childmfe | fe-shared | fe-designsystem | be-experienceapi); orchestrator MUST be an exact orchestrator id (scaffold | code-builder | fix-defect | review | unit-test | contract-sync | refactor-shared | fix-pentest | security | performance | accessibility); stages is the ordered stage/task_id list planned at Stage 0 (the resume re-entry map); any owning agent id MUST be an exact roster id.",
   "run_id": "<run-id>",
   "pbi_id": "<pbi-id>",
+  "orchestrator": "<orchestrator-id>",
+  "stages": ["<task_id-0>", "<task_id-1>", "<...>"],
   "profile": "<profile>",
   "branch": "<branch>",
   "started_at": "<iso-8601-utc>"

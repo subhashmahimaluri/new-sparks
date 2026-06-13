@@ -20,6 +20,8 @@ It is the concrete implementation of the rules in `cache-policy`. It does NOT de
 
 This skill is the one place the cache lives. It is never used to short-circuit apply-edit, run-tests, self-evaluate, or LLM completions (see Constraints).
 
+**Story cache — the named per-PBI entry (NO TTL).** The most important cache artifact is the **story cache**: `.eq-sparks/cache/story-cache/<pbi>.json`, written by `ado-context` (the PBI fields) and merged by the orchestrator (Figma metadata, when the PBI links a design). Unlike the opaque hashed entries above, it is a stable, human-readable, **cross-run** file keyed simply by PBI id. Fetch a PBI once → every downstream agent and a later `/resume` read this one file instead of re-calling ADO or Figma. It is the concrete "no repeat task" mechanism: the orchestrator checks for `story-cache/<pbi>.json` before any ADO call and prints `Cache hit` when it exists. **The story cache has NO TTL: a `get()` on it is a hit purely on file existence — never expired by mtime, regardless of age** (the story-cache clause in `cache-policy` §3). Token saving wins over freshness; only an explicit `refresh` flag (passed by the orchestrator) or `sync --clear-cache` invalidates it. The mtime/TTL-miss rule below applies only to the opaque hashed per-run entries, not to this named story cache.
+
 ## Inputs
 
 For `get`:
@@ -49,7 +51,7 @@ For `put`:
 
 - `Read` — read the cache entry file on a `get`.
 - `Write` — write the cache entry file on a `put`.
-- `Bash` — compute/verify the on-disk path, check existence, and apply TTL expiry (mtime check). No network. No package installs.
+- `Bash` — compute/verify the on-disk path, check existence, and apply TTL expiry (mtime check) **for the opaque hashed per-run entries only** — the named story cache `story-cache/<pbi>.json` is hit on existence alone, never expired by mtime. No network. No package installs.
 
 ## Constraints
 
@@ -62,7 +64,7 @@ For `put`:
 - **Distinct from Anthropic prompt-cache.** This is the skill-output cache. The 5-min prompt-cache prefix alignment is a separate mechanism described in `cache-policy`; this skill does not manage it.
 - **fail_modes:**
   - Corrupt/unparseable entry on `get` -> treat as `miss`, emit `cache:miss`, and the caller recomputes. Never crash the run on a bad entry.
-  - Expired entry (mtime past TTL) -> `miss`.
+  - Expired entry (mtime past TTL) -> `miss`. **Does not apply to the story cache** `story-cache/<pbi>.json`, which has no TTL — it is a hit on existence regardless of age.
   - Missing `run_id` for `scope: run` -> error back to caller; do not fall back to a shared namespace.
   - Cache dir unwritable -> log and degrade to no-cache (every `get` is a `miss`, every `put` is `skipped`); the run still proceeds, just without savings.
 
@@ -76,7 +78,7 @@ For `put`:
 
 1. Caller computes `input_hash` over its complete input set and calls `get(skill_id, version, input_hash, scope, run_id)`.
 2. Resolve the path: `scope: run` -> `.eq-sparks/cache/<run-id>/<skill_id>@<version>/<input_hash>.json`; `scope: cross-run` -> `.eq-sparks/cache/_shared/<skill_id>@<version>/<input_hash>.json`.
-3. If the file is absent, unparseable, or past its TTL -> emit `cache:miss` and return `{ status: miss, value: null }`.
+3. If the file is absent, unparseable, or past its TTL -> emit `cache:miss` and return `{ status: miss, value: null }`. **The "past its TTL" condition is skipped for the story cache** `story-cache/<pbi>.json` — it is never a miss on age, only on absence or an explicit `refresh`/clear.
 4. If present and valid -> emit `cache:hit` and return `{ status: hit, value }`. Caller skips its work.
 5. On a `miss`, the caller does its work, then calls `put(...)` with the `output`.
 6. On `put`, check the non-cacheable deny-list (apply-edit / run-tests / self-evaluate / LLM completions). If matched -> `status: skipped`, no write.

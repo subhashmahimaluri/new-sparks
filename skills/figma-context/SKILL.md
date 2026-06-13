@@ -43,7 +43,7 @@ A structured `figma_context` object:
 
 ## Constraints
 
-- **cacheable: true (per-run, keyed on `figma_url` + `depth`)** — per the cache-policy, cache the fetched `figma_context` so re-asking for the same URL/depth inside one run is a hit, not a second MCP round-trip. Use `cache-lookup` before fetching. A different `node_id` or `want_render` is a different read; key includes `node_id` when present. NEVER cache across runs — designs move.
+- **cacheable: true (per-run, keyed on `figma_url` + `depth`)** — per the cache-policy, cache the fetched `figma_context` so re-asking for the same URL/depth inside one run is a hit, not a second MCP round-trip. Use `cache-lookup` before fetching. A different `node_id` or `want_render` is a different read; key includes `node_id` when present. **This per-run hashed entry is NOT cross-run** — it lives under `.eq-sparks/cache/<run-id>/` and is discarded at run end; designs move, so a stale per-run hash is never replayed in a later run. The **cross-run persistence is separate**: it is the NO-TTL **story cache** at `.eq-sparks/cache/story-cache/<pbi>.json`, into which the orchestrator merges this result under the `figma[<figma_url>]` key (per step 8) — the same per-PBI file `ado-context` writes. This is the story-cache clause in `cache-policy` §3: **once the Figma data is present there, the orchestrator skips this skill entirely on later runs (no MCP round-trip, no token cost) unless an explicit `refresh` flag is passed** (e.g. `/scaffold PBI 37 refresh`). `fetched_at` is informational only and drives no TTL. **Re-fetch ONLY on `refresh`, or when the story cache lacks the Figma data** (absent file, or the `figma[<figma_url>]` key not yet present) — never on age.
 - **Auth via browser/OAuth — no token in the repo.** The Figma MCP server holds the session; this skill carries NO secret, env var, or PAT. Honour safety-rails: nothing sensitive is logged or written.
 - Read-only. Path-policy: writes nothing to any repo.
 - Keep `depth` shallow and prefer a `node_id` over a whole-file URL — token discipline serves budget-policy. The Figma payload is the volatile tail of the prompt-cache prefix, never the stable head.
@@ -72,7 +72,7 @@ A structured `figma_context` object:
 5. Collect text strings, applied styles/variables, and the referenced `component_names[]`.
 6. If `want_render`, request a render image of the target frame; on render failure, continue with `render: null` (the `partial` mode).
 7. Assemble `figma_context` with `source` provenance, write it to the per-run cache, and return.
-8. Hand `component_names[]` to `@design-system` for mapping onto `eq-one-design-system`.
+8. Return `figma_context`. The **orchestrator** merges it into the story cache — `.eq-sparks/cache/story-cache/<pbi>.json` under `figma[<figma_url>]` (a cache write, not a repo write) — so `@design-system`, `@mfe`, `@state`, and `@a11y` read the design from the **same per-PBI file** they already use for the PBI fields. `component_names[]` is the hook `@design-system` maps onto `eq-one-design-system`.
 
 ## Anti-patterns
 
