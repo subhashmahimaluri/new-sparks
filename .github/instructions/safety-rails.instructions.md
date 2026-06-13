@@ -1,4 +1,5 @@
 ---
+applyTo: "**"
 id: safety-rails
 name: Safety Rails
 version: 1.0.0

@@ -21,7 +21,7 @@ Both adapters share the render core in `bin/render-lib.mjs` (no runtime dependen
 |---|---|---|---|
 | **Agent** | `agents/<category>/<id>.md` (`category` ∈ `governance` \| `core` \| `frontend` \| `bff` \| `platform`) | `.claude/agents/<id>.md` (flattened) | `.github/agents/<category>/<id>.md` (grouped by category) |
 | **Skill** | `skills/<id>/SKILL.md` | `.claude/skills/<id>/SKILL.md` | `.github/skills/<id>/SKILL.md` |
-| **Orchestrator** | `orchestrators/<id>.md` | `.claude/commands/<id>.md` | `.github/chatmodes/<id>.chatmode.md` |
+| **Orchestrator** | `orchestrators/<id>.md` | `.claude/commands/<id>.md` | `.github/agents/<id>-orchestrator.agent.md` |
 | **Guardrails** | `shared/guardrails/<id>.md` | (stays in `.eq-sparks/`) | `.github/instructions/<id>.instructions.md` |
 | **Principles** | `instructions/<id>.md` | (stays in `.eq-sparks/`) | `.github/instructions/<id>.instructions.md` |
 
@@ -33,10 +33,10 @@ Both adapters share the render core in `bin/render-lib.mjs` (no runtime dependen
 - **Orchestrators → commands:** `orchestrators/<id>.md` renders to `.claude/commands/<id>.md` (a Claude Code "command" is our orchestrator).
 - **Skills pass through:** `skills/<id>/SKILL.md` → `.claude/skills/<id>/SKILL.md`, structure preserved.
 
-### Adapter 2 — GitHub Copilot (`bin/render-copilot.mjs` → `.github/{chatmodes,agents/<category>,skills,instructions}` + `copilot-instructions.md`)
+### Adapter 2 — GitHub Copilot (`bin/render-copilot.mjs` → `.github/agents` (orchestrators at root + `<category>/` sub-agents), `.github/skills`, `.github/instructions` + `copilot-instructions.md`)
 
-- **Orchestrators → chat modes:** `orchestrators/<id>.md` renders to `.github/chatmodes/<id>.chatmode.md` (chat modes are Copilot's orchestrator entry points). The frontmatter key is **rewritten**: our `allowed-tools:` becomes Copilot's **`tools:`** (the `allowed-tools` → `tools` mapping). Same tool list, IDE-native key.
-- **Sub-agents stay grouped by category:** `agents/<category>/<id>.md` → `.github/agents/<category>/<id>.md` (Copilot keeps the category directories that Claude flattens away).
+- **Orchestrators → custom agents (root):** `orchestrators/<id>.md` renders to `.github/agents/<id>-orchestrator.agent.md` — the top-level, **user-invocable** custom agents that appear in Copilot's Agents dropdown. The frontmatter is rewritten to the custom-agent schema: `name`, `description`, `tools`, `agents: ["*"]` (may delegate to any sub-agent), `user-invocable: true`, and `argument-hint`. (VS Code renamed "custom chat modes" to custom agents; `.chatmode.md` is the deprecated form, which is why orchestrators placed there don't appear in the dropdown.)
+- **Sub-agents stay grouped by category:** `agents/<category>/<id>.md` → `.github/agents/<category>/<id>.agent.md` with `user-invocable: false` (delegation-only — orchestrators reach them via `agents: ["*"]`, and they're kept out of the dropdown). The category subfolders are registered in `.vscode/settings.json` (`chat.agentFilesLocations`) so VS Code detects them.
 - **Skills pass through:** `skills/<id>/SKILL.md` → `.github/skills/<id>/SKILL.md`, structure preserved.
 - **Guardrails + principles → instructions:** every `shared/guardrails/*.md` (the policies, incl. `guardrails-registry`) and every `instructions/*.md` (the universal principles, e.g. `eq-principles`) render to `.github/instructions/<id>.instructions.md` as path-scoped Copilot instructions.
 - **Repo-wide index:** the adapter also writes `.github/copilot-instructions.md` — a generated index of where everything lives (chat modes, agents-by-category, skills, instructions) plus the governance-trio reminder.
@@ -181,7 +181,7 @@ cacheable: false
 
 ## Kind 3 — Orchestrator / Command
 
-**Canonical location:** `orchestrators/<id>.md`. **Rendered to** `.claude/commands/<id>.md` (Claude: orchestrator → command) and `.github/chatmodes/<id>.chatmode.md` (Copilot: orchestrator → chat mode) — never edit either rendered file. For the Copilot chat mode the frontmatter `allowed-tools:` key is rewritten to `tools:` (the `allowed-tools` → `tools` mapping); the tool list is unchanged.
+**Canonical location:** `orchestrators/<id>.md`. **Rendered to** `.claude/commands/<id>.md` (Claude: orchestrator → command) and `.github/agents/<id>-orchestrator.agent.md` (Copilot: orchestrator → top-level custom agent, `user-invocable: true`, `agents: ["*"]`) — never edit either rendered file. Sub-agents render to `.github/agents/<category>/<id>.agent.md` with `user-invocable: false`.
 
 A command is the main-thread orchestrator. It plans stages, launches subagents, enforces the governance gate, and renders the console. **It is the only place the `Agent` tool is used.**
 
@@ -236,7 +236,7 @@ The observability contract is authored under `shared/telemetry/`: `telemetry-sch
 |---|---|---|---|---|---|
 | **Agent** | `agents/<category>/<id>.md` | `.claude/agents/<id>.md` (flatten) | `.github/agents/<category>/<id>.md` | `name`, `description`, `model`, `tools`, `loop` | `model` (see [[model-routing-policy]]) |
 | **Skill** | `skills/<id>/SKILL.md` | `.claude/skills/<id>/SKILL.md` | `.github/skills/<id>/SKILL.md` | `name`, `description` | `cacheable` (see [[cache-policy]]) |
-| **Orchestrator** | `orchestrators/<id>.md` | `.claude/commands/<id>.md` (→command) | `.github/chatmodes/<id>.chatmode.md` (`allowed-tools`→`tools`) | `description`, `argument-hint`, `allowed-tools` (incl. `Agent`) | stage budget (see [[budget-policy]]) |
+| **Orchestrator** | `orchestrators/<id>.md` | `.claude/commands/<id>.md` (→command) | `.github/agents/<id>-orchestrator.agent.md` (→custom agent; `user-invocable: true`, `agents: ["*"]`) | `description`, `argument-hint`, `allowed-tools` (incl. `Agent`) | stage budget (see [[budget-policy]]) |
 | **Guardrail** | `shared/guardrails/<id>.md` | (in `.eq-sparks/`) | `.github/instructions/<id>.instructions.md` | — | — |
 | **Telemetry** | `shared/telemetry/*.md` | (in `.eq-sparks/`) | (not rendered to an IDE) | — | — |
 

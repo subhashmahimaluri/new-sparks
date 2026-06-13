@@ -263,7 +263,7 @@ When you are asked to build POC pieces:
 
 This POC is **Claude-Code-first.** The canonical source — `agents/<layer>/`, `skills/`, `orchestrators/` ([§2](#2-repository-topology--the-estate-rules)) — is **authored and runnable now**, and `bin/render-claude.mjs` renders it into the **generated `.claude/` tree** (`.claude/agents/`, `.claude/commands/`, `.claude/skills/`) that Claude Code executes. Never hand-edit `.claude/`; edit the canonical source and re-render.
 
-The Copilot `.github/` render is **now built** — `bin/render-copilot.mjs` renders the same canonical source (orchestrators → chatmodes, agents by category, OS internals hidden in `.eq-sparks/`), so the two IDEs never drift ([§13](#13-distribution)). Cursor is a later adapter, no content rewrite. The manual reconciliation and render steps are tracked in [MANUAL-STEPS.md](MANUAL-STEPS.md).
+The Copilot `.github/` render is **now built** — `bin/render-copilot.mjs` renders the same canonical source (orchestrators → top-level `.github/agents/*-orchestrator.agent.md` selectable in the Agents dropdown, sub-agents grouped under `.github/agents/<category>/`, and on install the full harness OS synced into the gitignored `.eq-sparks/` so agents read it there), so the two IDEs never drift ([§13](#13-distribution)). Cursor is a later adapter, no content rewrite. The manual reconciliation and render steps are tracked in [MANUAL-STEPS.md](MANUAL-STEPS.md).
 
 > One source of truth, many renders. Author once in the canonical layout; let the render (`bin/render-claude.mjs`) and the adapter do the rest.
 
@@ -343,6 +343,6 @@ A consumer repo bootstraps eq-sparks with **`install.js` / `install.sh`**, which
 Both rendered trees are **generated, never hand-edited**:
 
 - **`.claude/`** — produced by [bin/render-claude.mjs](bin/render-claude.mjs): `agents/` → `.claude/agents/`, `orchestrators/` → `.claude/commands/`, `skills/` → `.claude/skills/`.
-- **`.github/`** (Copilot — now built) — produced by [bin/render-copilot.mjs](bin/render-copilot.mjs): **orchestrators → chatmodes**, **agents rendered by category**, with the OS internals hidden in `.eq-sparks/`.
+- **`.github/`** (Copilot — now built) — produced by [bin/render-copilot.mjs](bin/render-copilot.mjs): **orchestrators → `.github/agents/*-orchestrator.agent.md`** (root, selectable in the Agents dropdown), **sub-agents → `.github/agents/<category>/`** (`user-invocable: false`); on install the full harness OS is synced into the gitignored `.eq-sparks/` and agents are rewritten to read it there.
 
 One canonical source, two renders, no drift. Edit the canonical source and re-render; never hand-edit `.claude/` or `.github/`.

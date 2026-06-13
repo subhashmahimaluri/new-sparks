@@ -1,11 +1,7 @@
-# eq-sparks runtime "OS" — never committed in consumer repos.
-# In consumer repos the whole .eq-sparks/ tree is gitignored; here in the
-# central repo we only ignore the per-run runtime state, not the source.
-.eq-sparks/cache/
-.eq-sparks/agent-memory/
-.eq-sparks/runs/
-.eq-sparks/telemetry/
-.eq-sparks/artifacts/
+# eq-sparks — the hidden agentic OS. The WHOLE .eq-sparks/ tree (synced harness + runtime
+# cache/agent-memory/telemetry) is gitignored in every repo, central and consumer alike.
+# Agents still READ these files on disk; they are just never committed.
+.eq-sparks/
 
 # Per-developer config (the .example is committed; the real one is not)
 .eq-sparks.yml

@@ -1,4 +1,5 @@
 ---
+applyTo: "**"
 name: EQ Universal Agent Principles
 id: eq-principles
 version: 1.0.0

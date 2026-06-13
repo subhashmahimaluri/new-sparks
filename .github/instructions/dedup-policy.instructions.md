@@ -1,4 +1,5 @@
 ---
+applyTo: "**"
 id: dedup-policy
 title: Dedup / No-Repeat Policy
 kind: guardrail

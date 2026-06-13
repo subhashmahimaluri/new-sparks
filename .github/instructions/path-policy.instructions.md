@@ -1,4 +1,5 @@
 ---
+applyTo: "**"
 id: path-policy
 title: Path Policy
 kind: guardrail

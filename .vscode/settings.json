@@ -1,0 +1,10 @@
+{
+  "chat.agentFilesLocations": {
+    ".github/agents": true,
+    ".github/agents/bff": true,
+    ".github/agents/core": true,
+    ".github/agents/frontend": true,
+    ".github/agents/governance": true,
+    ".github/agents/platform": true
+  }
+}

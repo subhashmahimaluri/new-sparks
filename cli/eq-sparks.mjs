@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 // cli/eq-sparks.mjs — the eq-sparks distribution CLI (no dependencies, Node 18+).
 //
-//   npx github:equiniti-org/eq-sparks init   --profile=fe-childmfe [--ide=claude,copilot] [--offline-only]
-//   npx github:equiniti-org/eq-sparks sync   [--profile=...] [--ide=...]
-//   npx github:equiniti-org/eq-sparks update [--offline-only] [--profile=...]
+//   eq-sparks init --profile=fe-childmfe                                  (both editors, full mode)
+//   eq-sparks init --profile=be-experienceapi --ide=copilot --offline-only
+//   eq-sparks sync --profile=fe-childmfe
+//   (once published to GitHub: prefix with `npx github:<org>/eq-sparks` instead of `eq-sparks`)
+//   Note: add only the flags you need — never type the [ ] brackets that mean "optional" in docs.
 //
 // SRC  = this package (the canonical eq-sparks source; npx fetches it for you).
 // DEST = the consumer repo you run the command in (process.cwd()).
@@ -17,7 +19,7 @@
 
 import { join, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { existsSync, readFileSync, writeFileSync, mkdirSync, appendFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, appendFileSync, readdirSync, cpSync } from 'node:fs';
 import { renderClaude, renderCopilot } from '../bin/render-lib.mjs';
 
 const PKG_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..'); // canonical source
@@ -73,13 +75,28 @@ function writeIfAbsent(file, content, label) {
 
 function ensureGitignore(dest) {
   const gi = join(dest, '.gitignore');
-  const needed = ['.eq-sparks/cache/', '.eq-sparks/agent-memory/', '.eq-sparks/telemetry/', '.eq-sparks.yml'];
+  // The WHOLE .eq-sparks/ is gitignored (synced harness + runtime) — agents still read it on disk.
+  const needed = ['.eq-sparks/', '.eq-sparks.yml'];
   const existing = existsSync(gi) ? readFileSync(gi, 'utf8') : '';
-  const missing = needed.filter((n) => !existing.includes(n));
+  const missing = needed.filter((n) => !new RegExp('^' + n.replace(/[.\/]/g, '\\$&') + '\\s*$', 'm').test(existing));
   if (missing.length) {
-    appendFileSync(gi, (existing && !existing.endsWith('\n') ? '\n' : '') + '\n# eq-sparks runtime (hidden agentic OS)\n' + missing.join('\n') + '\n');
+    appendFileSync(gi, (existing && !existing.endsWith('\n') ? '\n' : '') + '\n# eq-sparks — hidden agentic OS (synced harness + runtime); read on disk, never committed\n' + missing.join('\n') + '\n');
     console.log(`  • appended ${missing.length} entr${missing.length === 1 ? 'y' : 'ies'} to .gitignore`);
   }
+}
+
+// Sync the canonical harness OS into the consumer's gitignored .eq-sparks/ so agents can READ
+// guardrails / methodology / memory / profiles / skills there, and write run state under
+// cache/ agent-memory/ telemetry/. Mirrors the "sparse-checkout → .eq-sparks/" install step.
+function syncHarness(dest) {
+  const osDir = join(dest, '.eq-sparks');
+  for (const d of ['shared', 'methodology', 'console', 'instructions', 'profiles', 'skills', 'agents', 'orchestrators']) {
+    const from = join(PKG_ROOT, d);
+    if (existsSync(from)) cpSync(from, join(osDir, d), { recursive: true });
+  }
+  const schema = join(PKG_ROOT, 'SCHEMA.md');
+  if (existsSync(schema)) cpSync(schema, join(osDir, 'SCHEMA.md'));
+  for (const d of ['cache', 'agent-memory', 'telemetry']) mkdirSync(join(osDir, d), { recursive: true });
 }
 
 function mcpJson() {
@@ -92,15 +109,15 @@ function mcpJson() {
   }, null, 2) + '\n';
 }
 
-function render(dest, ides, filter, { offline }) {
+function render(dest, ides, filter, { offline, osPrefix = '' }) {
   const out = [];
   if (!offline && ides.includes('claude')) {
-    const n = renderClaude(PKG_ROOT, dest, filter);
+    const n = renderClaude(PKG_ROOT, dest, filter, osPrefix);
     out.push(`.claude (${n.agents} agents, ${n.skills} skills, ${n.commands} commands)`);
   }
   if (ides.includes('copilot')) {
-    const n = renderCopilot(PKG_ROOT, dest, filter);
-    out.push(`.github (${n.chatmodes} chatmodes, ${n.agents} agents, ${n.skills} skills, ${n.instructions} instructions)`);
+    const n = renderCopilot(PKG_ROOT, dest, filter, osPrefix);
+    out.push(`.github (${n.orchestrators} orchestrators, ${n.agents} sub-agents, ${n.skills} skills, ${n.instructions} instructions)`);
   }
   return out;
 }
@@ -113,23 +130,29 @@ function init(args) {
   const ides = (args.ide || (offline ? 'copilot' : 'claude,copilot')).split(',').map((s) => s.trim());
   const filter = loadProfile(profileName);
 
+  const osPrefix = offline ? '' : '.eq-sparks/';
   console.log(`eq-sparks init → profile=${profileName} ide=${ides.join('+')} mode=${offline ? 'offline-only' : 'full'}`);
-  const rendered = render(dest, ides, filter, { offline });
+
+  if (!offline) {
+    // Sync the full harness OS into the gitignored .eq-sparks/ so agents can read it + keep run state.
+    syncHarness(dest);
+    console.log('  • synced harness → .eq-sparks/ (shared, methodology, profiles, skills, instructions + cache/agent-memory/telemetry)');
+  }
+
+  const rendered = render(dest, ides, filter, { offline, osPrefix });
   rendered.forEach((r) => console.log(`  • rendered ${r}`));
 
   // .vscode/mcp.json — one shared config (both modes).
   writeIfAbsent(join(dest, '.vscode/mcp.json'), mcpJson(), '.vscode/mcp.json (ADO + Figma — set URLs per MANUAL-STEPS D1)');
 
   if (!offline) {
-    // Hidden agentic OS — runtime dirs (gitignored).
-    for (const d of ['cache', 'agent-memory', 'telemetry']) mkdirSync(join(dest, '.eq-sparks', d), { recursive: true });
-    console.log('  • created .eq-sparks/{cache,agent-memory,telemetry} (hidden OS)');
     writeIfAbsent(join(dest, '.eq-sparks.yml'),
       readFileSync(join(PKG_ROOT, '.eq-sparks.yml.example'), 'utf8').replace(/^profile:.*$/m, `profile: ${profileName}`),
       '.eq-sparks.yml (from example — fill ADO org/project, NewRelic toggle)');
     ensureGitignore(dest);
+    console.log('  • .eq-sparks/ + .eq-sparks.yml gitignored — agents still READ the .eq-sparks files on disk');
   } else {
-    console.log('  • offline-only: skipped .eq-sparks/ cache/config (no Flow 1 autonomous, no Flow 3 resume; no sync needed — re-run init/update on demand)');
+    console.log('  • offline-only: .github only, no .eq-sparks/ runtime (no Flow 1/3); guardrails auto-apply via .github/instructions; re-run update on demand (no sync)');
   }
   console.log('Done. Next: set the MCP URLs in .vscode/mcp.json (MANUAL-STEPS D1) and sign in via browser.');
 }
@@ -147,8 +170,13 @@ function syncOrUpdate(args, cmd) {
   profileName = profileName || 'fe-childmfe';
   const filter = loadProfile(profileName);
 
+  const osPrefix = offline ? '' : '.eq-sparks/';
   console.log(`eq-sparks ${cmd} → profile=${profileName} ide=${ides.join('+')} mode=${offline ? 'offline-only' : 'full'}`);
-  render(dest, ides, filter, { offline }).forEach((r) => console.log(`  • re-rendered ${r}`));
+  if (!offline) {
+    syncHarness(dest);
+    console.log('  • re-synced harness → .eq-sparks/');
+  }
+  render(dest, ides, filter, { offline, osPrefix }).forEach((r) => console.log(`  • re-rendered ${r}`));
 
   if (cmd === 'sync' && !offline) {
     console.log('  • full sync: review the re-rendered .claude/.github diff and open a PR (the consumer eq-sparks-sync workflow does this automatically on a schedule — see templates/consumer/eq-sparks-sync.yml).');
@@ -168,12 +196,20 @@ export async function main(argv) {
       console.log([
         'eq-sparks — central agentic harness CLI',
         '',
-        'Usage:',
-        '  eq-sparks init   --profile=<p> [--ide=claude,copilot] [--offline-only]',
-        '  eq-sparks sync   [--profile=<p>] [--ide=...]            # full mode: re-render + PR',
-        '  eq-sparks update [--offline-only] [--profile=<p>]       # offline: re-render in place',
+        'Commands:',
+        '  init     set up this repo (renders .claude/ and/or .github/)',
+        '  sync     re-render to pick up updates (full mode; opens a PR)',
+        '  update   re-render in place (use with --offline-only)',
         '',
-        `Profiles: ${PROFILES().join(', ')}`,
+        'Flags (add only the ones you need — do NOT type any [ ] brackets you see in docs):',
+        '  --profile=NAME        one of: ' + PROFILES().join(', '),
+        '  --ide=claude,copilot  which editor(s); default is both',
+        '  --offline-only        Copilot only, no .eq-sparks runtime, no sync needed',
+        '',
+        'Examples (copy exactly):',
+        '  eq-sparks init --profile=fe-childmfe',
+        '  eq-sparks init --profile=be-experienceapi --ide=copilot --offline-only',
+        '  eq-sparks sync --profile=fe-childmfe',
       ].join('\n'));
       if (cmd && cmd !== 'help') process.exitCode = 1;
   }

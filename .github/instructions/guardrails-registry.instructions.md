@@ -1,4 +1,5 @@
 ---
+applyTo: "**"
 id: guardrails-registry
 title: Guardrails Registry
 kind: guardrail

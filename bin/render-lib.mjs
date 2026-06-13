@@ -65,14 +65,26 @@ export function listOrchestrators(src) {
 
 const keep = (filter, id) => !filter || filter.includes(id);
 
+// OS source roots that move under .eq-sparks/ in a consumer install. When `osPrefix` is set, rewrite
+// path-like references (markdown links + inline-code paths) so a rendered agent resolves the OS there.
+const OS_ROOTS = ['shared', 'methodology', 'console', 'instructions', 'profiles', 'skills', 'agents', 'orchestrators'];
+function rewriteOsPaths(content, prefix) {
+  if (!prefix) return content;
+  const alt = OS_ROOTS.join('|');
+  return content
+    .replace(new RegExp(`\\]\\(\\.?/?(${alt})/`, 'g'), `](${prefix}$1/`) // markdown links
+    .replace(new RegExp('`\\.?/?(' + alt + ')/', 'g'), '`' + prefix + '$1/'); // inline-code paths
+}
+
 // ── Claude Code adapter: .claude/{agents,skills,commands} ──
-export function renderClaude(src, dest, filter = {}) {
+export function renderClaude(src, dest, filter = {}, osPrefix = '') {
   const n = { agents: 0, skills: 0, commands: 0 };
+  const W = (p, c) => writeFileSync(p, rewriteOsPaths(c, osPrefix));
 
   rmSync(join(dest, '.claude/agents'), { recursive: true, force: true });
   mkdirSync(join(dest, '.claude/agents'), { recursive: true });
   for (const a of listAgents(src)) if (keep(filter.agents, a.id)) {
-    writeFileSync(join(dest, '.claude/agents', a.id + '.md'), withBanner(readFileSync(a.path, 'utf8'), rel(src, a.path), 'Claude Code'));
+    W(join(dest, '.claude/agents', a.id + '.md'), withBanner(readFileSync(a.path, 'utf8'), rel(src, a.path), 'Claude Code'));
     n.agents++;
   }
 
@@ -80,44 +92,121 @@ export function renderClaude(src, dest, filter = {}) {
   for (const s of listSkills(src)) if (keep(filter.skills, s.id)) {
     const o = join(dest, '.claude/skills', s.id, 'SKILL.md');
     mkdirSync(dirname(o), { recursive: true });
-    writeFileSync(o, withBanner(readFileSync(s.path, 'utf8'), rel(src, s.path), 'Claude Code'));
+    W(o, withBanner(readFileSync(s.path, 'utf8'), rel(src, s.path), 'Claude Code'));
     n.skills++;
   }
 
   rmSync(join(dest, '.claude/commands'), { recursive: true, force: true });
   mkdirSync(join(dest, '.claude/commands'), { recursive: true });
   for (const o of listOrchestrators(src)) if (keep(filter.orchestrators, o.id)) {
-    writeFileSync(join(dest, '.claude/commands', o.id + '.md'), withBanner(readFileSync(o.path, 'utf8'), rel(src, o.path), 'Claude Code'));
+    W(join(dest, '.claude/commands', o.id + '.md'), withBanner(readFileSync(o.path, 'utf8'), rel(src, o.path), 'Claude Code'));
     n.commands++;
   }
   return n;
 }
 
-// Copilot chat modes use `tools:` where our orchestrators use `allowed-tools:`.
-function toChatmode(content) {
-  return content.replace(/^allowed-tools:/m, 'tools:');
+// ── Copilot frontmatter transforms ──
+// VS Code Copilot reads "custom agents" from .github/agents as `*.agent.md`. Top-level files are the
+// SELECTABLE agents (Agents dropdown); we put orchestrators there. Sub-agents go in <category>/
+// subfolders, delegation-only (user-invocable: false), and we register those folders in
+// .vscode/settings.json (chat.agentFilesLocations). "Custom chat modes" were renamed to custom
+// agents, so .chatmode.md is the deprecated form. Refs:
+//   https://code.visualstudio.com/docs/agent-customization/custom-agents
+//   https://docs.github.com/en/copilot/reference/custom-agents-configuration
+
+// Parse single-line YAML frontmatter into a map; return the map and the body after it.
+function parseFm(content) {
+  const fmMap = {};
+  let body = content;
+  if (content.startsWith('---')) {
+    const close = content.indexOf('\n---', 3);
+    if (close !== -1) {
+      const block = content.slice(content.indexOf('\n') + 1, close + 1);
+      for (const line of block.split('\n')) {
+        const m = line.match(/^([A-Za-z0-9_-]+):\s*(.*)$/);
+        if (m) fmMap[m[1]] = m[2];
+      }
+      body = content.slice(content.indexOf('\n', close + 1) + 1);
+    }
+  }
+  return { fmMap, body };
 }
 
-function copilotIndex(src, agents) {
+// Inject keys at the top of an existing frontmatter block (create one if absent).
+function injectFm(content, keys) {
+  const lines = Object.entries(keys).map(([k, v]) => `${k}: ${v}`).join('\n');
+  if (content.startsWith('---')) {
+    const close = content.indexOf('\n---', 3);
+    if (close !== -1) {
+      const afterOpen = content.indexOf('\n') + 1;
+      return content.slice(0, afterOpen) + lines + '\n' + content.slice(afterOpen);
+    }
+  }
+  return `---\n${lines}\n---\n\n${content}`;
+}
+
+// Orchestrator → a top-level, user-invocable custom agent that may delegate to any sub-agent.
+function toCopilotOrchestrator(content, id, src) {
+  const { fmMap, body } = parseFm(content);
+  const fm = {
+    name: `${id}-orchestrator`,
+    description: fmMap['description'] || id,
+    tools: fmMap['allowed-tools'] || fmMap['tools'] || 'Read, Grep, Glob, Edit, Bash',
+    agents: '["*"]', // may delegate to any sub-agent
+    'user-invocable': 'true', // appears in the Agents dropdown
+  };
+  if (fmMap['argument-hint']) fm['argument-hint'] = fmMap['argument-hint'];
+  const head = '---\n' + Object.entries(fm).map(([k, v]) => `${k}: ${v}`).join('\n') + '\n---\n';
+  return head + banner(src, 'Copilot') + '\n' + body;
+}
+
+// Sub-agent → a custom agent in a category subfolder, delegation-only (kept out of the dropdown).
+function toCopilotSubagent(content, src) {
+  return withBanner(injectFm(content, { 'user-invocable': 'false' }), src, 'Copilot');
+}
+
+// Guardrail / principle → a path-scoped instruction that auto-applies everywhere.
+function toCopilotInstruction(content, src) {
+  return withBanner(injectFm(content, { applyTo: '"**"' }), src, 'Copilot');
+}
+
+// Register the sub-agent subfolders so VS Code detects them (merge — never clobber existing settings).
+function mergeVscodeSettings(dest, categories) {
+  const p = join(dest, '.vscode/settings.json');
+  let settings = {};
+  if (existsSync(p)) { try { settings = JSON.parse(readFileSync(p, 'utf8')); } catch { settings = {}; } }
+  const cur = settings['chat.agentFilesLocations'];
+  const locs = (cur && typeof cur === 'object' && !Array.isArray(cur)) ? cur : {};
+  locs['.github/agents'] = true;
+  for (const c of categories) locs[`.github/agents/${c}`] = true;
+  settings['chat.agentFilesLocations'] = locs;
+  mkdirSync(dirname(p), { recursive: true });
+  writeFileSync(p, JSON.stringify(settings, null, 2) + '\n');
+}
+
+function copilotIndex(src, agents, orchestrators) {
   const byCat = {};
   for (const a of agents) (byCat[a.category] ||= []).push(a.id);
   const cats = Object.keys(byCat).sort().map((c) => `- **${c}/**: ${byCat[c].sort().join(', ')}`).join('\n');
   return [
     '# GitHub Copilot — eq-sparks',
-    banner(rel(src, join(src, 'agents')) + ' + orchestrators/ + skills/', 'Copilot').trim(),
+    banner('agents/ + orchestrators/ + skills/', 'Copilot').trim(),
     '',
-    'This repository uses the **eq-sparks** central agentic harness. Copilot reads the agents,',
-    'orchestrators, skills and guardrails rendered below; the hidden "agentic OS" (cache, budget,',
-    'memory, telemetry) lives in `.eq-sparks/` and must never be edited by hand.',
+    'This repository uses the **eq-sparks** central agentic harness. The full harness OS (guardrails,',
+    'methodology, memory, profiles) plus the runtime (cache, agent-memory, telemetry) is synced into the',
+    'gitignored `.eq-sparks/` folder. Agents READ those files there even though they are not committed.',
     '',
     '## Where things are (generated — edit the canonical source, then re-render)',
-    '- **Orchestrators** (chat modes): `.github/chatmodes/<id>.chatmode.md`',
-    '- **Sub-agents** by category: `.github/agents/<category>/<id>.md`',
+    '- **Orchestrators** (selectable in the Agents dropdown): `.github/agents/<id>-orchestrator.agent.md`',
+    '- **Sub-agents** by category (delegation-only): `.github/agents/<category>/<id>.agent.md`',
     '- **Skills**: `.github/skills/<id>/SKILL.md`',
-    '- **Guardrails & principles** (instructions): `.github/instructions/`',
-    '- **Hidden agentic OS**: `.eq-sparks/` (cache, budget, memory, telemetry) — do not edit',
+    '- **Guardrails & principles** (auto-applied instructions): `.github/instructions/`',
+    '- **Harness OS + runtime** (gitignored, readable): `.eq-sparks/` (shared/, methodology/, profiles/, cache/, agent-memory/, telemetry/) — do not edit',
     '',
-    '## Sub-agents by category',
+    '## Orchestrators (run these)',
+    orchestrators.map((o) => `- ${o.id}-orchestrator`).sort().join('\n'),
+    '',
+    '## Sub-agents by category (delegated to by orchestrators)',
     cats,
     '',
     '> Every orchestrator runs the governance trio (@supervisor → workers → @critic → go/no-go),',
@@ -126,45 +215,55 @@ function copilotIndex(src, agents) {
   ].join('\n');
 }
 
-// ── Copilot adapter: .github/{agents/<category>,skills,chatmodes,instructions} + copilot-instructions.md ──
-export function renderCopilot(src, dest, filter = {}) {
-  const n = { agents: 0, skills: 0, chatmodes: 0, instructions: 0 };
+// ── Copilot adapter: .github/agents (orchestrators at root + sub-agents in <category>/), skills, instructions ──
+export function renderCopilot(src, dest, filter = {}, osPrefix = '') {
+  const n = { orchestrators: 0, agents: 0, skills: 0, instructions: 0 };
+  const W = (p, c) => writeFileSync(p, rewriteOsPaths(c, osPrefix));
   const agents = listAgents(src).filter((a) => keep(filter.agents, a.id));
+  const orchestrators = listOrchestrators(src).filter((o) => keep(filter.orchestrators, o.id));
 
+  // Clear the agents tree and the DEPRECATED chatmodes folder (renamed to agents).
   rmSync(join(dest, '.github/agents'), { recursive: true, force: true });
+  rmSync(join(dest, '.github/chatmodes'), { recursive: true, force: true });
+  mkdirSync(join(dest, '.github/agents'), { recursive: true });
+
+  // Orchestrators → .github/agents/<id>-orchestrator.agent.md  (ROOT — the selectable agents)
+  for (const o of orchestrators) {
+    W(join(dest, '.github/agents', o.id + '-orchestrator.agent.md'), toCopilotOrchestrator(readFileSync(o.path, 'utf8'), o.id, rel(src, o.path)));
+    n.orchestrators++;
+  }
+
+  // Sub-agents → .github/agents/<category>/<id>.agent.md  (delegation-only)
+  const categories = new Set();
   for (const a of agents) {
-    const o = join(dest, '.github/agents', a.category, a.id + '.md');
-    mkdirSync(dirname(o), { recursive: true });
-    writeFileSync(o, withBanner(readFileSync(a.path, 'utf8'), rel(src, a.path), 'Copilot'));
+    categories.add(a.category);
+    const out = join(dest, '.github/agents', a.category, a.id + '.agent.md');
+    mkdirSync(dirname(out), { recursive: true });
+    W(out, toCopilotSubagent(readFileSync(a.path, 'utf8'), rel(src, a.path)));
     n.agents++;
   }
 
+  // Skills → .github/skills/<id>/SKILL.md  (frontmatter name matches the dir)
   rmSync(join(dest, '.github/skills'), { recursive: true, force: true });
   for (const s of listSkills(src)) if (keep(filter.skills, s.id)) {
     const o = join(dest, '.github/skills', s.id, 'SKILL.md');
     mkdirSync(dirname(o), { recursive: true });
-    writeFileSync(o, withBanner(readFileSync(s.path, 'utf8'), rel(src, s.path), 'Copilot'));
+    W(o, withBanner(readFileSync(s.path, 'utf8'), rel(src, s.path), 'Copilot'));
     n.skills++;
   }
 
-  rmSync(join(dest, '.github/chatmodes'), { recursive: true, force: true });
-  mkdirSync(join(dest, '.github/chatmodes'), { recursive: true });
-  for (const o of listOrchestrators(src)) if (keep(filter.orchestrators, o.id)) {
-    writeFileSync(join(dest, '.github/chatmodes', o.id + '.chatmode.md'), withBanner(toChatmode(readFileSync(o.path, 'utf8')), rel(src, o.path), 'Copilot'));
-    n.chatmodes++;
-  }
-
-  // Guardrails + universal principles become path-scoped Copilot instructions.
+  // Guardrails + principles → .github/instructions/<id>.instructions.md  (auto-applied via applyTo)
   rmSync(join(dest, '.github/instructions'), { recursive: true, force: true });
   mkdirSync(join(dest, '.github/instructions'), { recursive: true });
   for (const f of [
     ...walk(join(src, 'shared/guardrails'), (p) => p.endsWith('.md')),
     ...walk(join(src, 'instructions'), (p) => p.endsWith('.md')),
   ]) {
-    writeFileSync(join(dest, '.github/instructions', basename(f, '.md') + '.instructions.md'), withBanner(readFileSync(f, 'utf8'), rel(src, f), 'Copilot'));
+    W(join(dest, '.github/instructions', basename(f, '.md') + '.instructions.md'), toCopilotInstruction(readFileSync(f, 'utf8'), rel(src, f)));
     n.instructions++;
   }
 
-  writeFileSync(join(dest, '.github/copilot-instructions.md'), copilotIndex(src, agents));
+  writeFileSync(join(dest, '.github/copilot-instructions.md'), copilotIndex(src, agents, orchestrators));
+  mergeVscodeSettings(dest, [...categories]);
   return n;
 }

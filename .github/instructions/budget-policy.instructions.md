@@ -1,4 +1,5 @@
 ---
+applyTo: "**"
 id: budget-policy
 title: Budget Policy
 kind: guardrail

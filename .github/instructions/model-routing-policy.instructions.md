@@ -1,4 +1,5 @@
 ---
+applyTo: "**"
 id: model-routing-policy
 title: Model Routing Policy (Haiku-first cost ladder)
 kind: guardrail
