@@ -3,7 +3,6 @@ user-invocable: false
 name: domain-folder
 description: Scaffolds a new, independently-deployable BFF domain folder in the ExperienceAPI monorepo at src/domains/<name>/ — wiring, not business logic.
 model: sonnet
-tools: Read, Edit, Write, Bash, Grep, Glob
 loop: autoresearch
 version: 1.0.0
 status: stable

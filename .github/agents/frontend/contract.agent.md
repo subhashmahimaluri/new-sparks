@@ -3,7 +3,6 @@ user-invocable: false
 name: contract
 description: Keeps FE TypeScript types and API clients aligned to the ExperienceAPI BFF OpenAPI contract; FAILS the stage on any drift.
 model: sonnet
-tools: Read, Edit, Write, Grep, Glob, Bash
 loop: autoresearch
 version: 1.0.0
 status: stable

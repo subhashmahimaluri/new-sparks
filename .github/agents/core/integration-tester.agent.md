@@ -3,7 +3,6 @@ user-invocable: false
 name: integration-tester
 description: Authors cross-module / cross-MFE integration tests that exercise the seams between EQOne MFEs, the eq-nexus-ui shell, eq-one-shared, and the ExperienceAPI BFF.
 model: sonnet
-tools: Read, Edit, Write, Bash, Grep, Glob
 loop: autoresearch
 version: 1.0.0
 status: stable

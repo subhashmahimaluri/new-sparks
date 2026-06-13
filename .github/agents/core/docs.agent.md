@@ -3,7 +3,6 @@ user-invocable: false
 name: docs
 description: Updates READMEs, JSDoc/XML-doc, and changelogs to exactly match a merged diff — no new prose, no judgment calls.
 model: haiku
-tools: Read, Edit, Write, Grep, Glob
 loop: autoresearch
 version: 1.0.0
 status: stable

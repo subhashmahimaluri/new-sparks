@@ -3,7 +3,6 @@ user-invocable: false
 name: bff-shaper
 description: Paints and polishes ExperienceAPI downstream request/response shapes into the exact contract the FE needs — BFF presentation only, never business logic.
 model: sonnet
-tools: Read, Edit, Write, Bash, Grep, Glob
 loop: autoresearch
 version: 1.0.0
 status: stable

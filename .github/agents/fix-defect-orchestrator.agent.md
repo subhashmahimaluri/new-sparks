@@ -1,7 +1,6 @@
 ---
 name: fix-defect-orchestrator
 description: Diagnose and fix a defect across the EQ FE/BFF estate — fetch, reproduce, locate, root-cause, fix, regression-test, and gate under governance and budget.
-tools: Read, Grep, Glob, Bash, Edit, Write, Agent, TodoWrite
 agents: ["*"]
 user-invocable: true
 argument-hint: "[PBI id | bug id | stack trace]"
@@ -13,7 +12,7 @@ argument-hint: "[PBI id | bug id | stack trace]"
 
 Turns `$ARGUMENTS` — an Azure DevOps PBI/bug id (e.g. `PBI 49120`, `Bug 49120`) or a pasted **stack trace** — into a diagnosed, surgically fixed, and regression-tested defect closure across the EQOne MFEs (`eq-nexus-ui` shell, `eq-one-saye-mfe` / `eq-one-sip-mfe` / `eq-one-shares-mfe`, `eq-one-shared`, `eq-one-design-system`) and the `ExperienceAPI` BFF (`src/domains/<name>/`). This complements `/scaffold` (new structure) and `/code-builder` (new feature into existing code): `/fix-defect` is **diagnosis-first** — it reproduces and root-causes **before** it edits, then fixes the minimal surface and proves the regression is closed.
 
-This command is the **main thread**: only it launches subagents via the `Agent` tool. **Subagents never launch further subagents.** Every stage is planned, budgeted, and gated by the governance trio:
+This command is the **main thread**: only it launches subagents by delegating via your `agents` list. **Subagents never launch further subagents.** Every stage is planned, budgeted, and gated by the governance trio:
 
 - **@supervisor** owns the run — plans the stages, allocates the tool-call/token budget from `budget-policy`, enforces the guardrails (`safety-rails`, `path-policy`, `dedup-policy`, `cache-policy`), and makes the go/no-go call between stages.
 - **@critic** is the strict quality gate — returns `PASS` / `FAIL` per stage. A `FAIL` **blocks** the stage and **loops back to the fix** until the defect is genuinely closed.

@@ -3,7 +3,6 @@ user-invocable: false
 name: architect
 description: Decides where code belongs (which MFE / eq-one-shared / design-system / BFF domain), the shape of the change, and the sequence of sub-tasks for non-trivial or cross-repo work — read-only, designs but never builds.
 model: opus
-tools: Read, Grep, Glob
 loop: single-shot
 version: 1.0.0
 status: active

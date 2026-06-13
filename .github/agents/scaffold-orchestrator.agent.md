@@ -1,7 +1,6 @@
 ---
 name: scaffold-orchestrator
 description: Flagship orchestrator — turn an ADO PBI (or task description) into a cross-repo-aware, governed scaffold across the EQOne MFEs and the ExperienceAPI BFF, under budget and with no repeated work.
-tools: Read, Grep, Glob, Bash, Edit, Write, Agent, TodoWrite
 agents: ["*"]
 user-invocable: true
 argument-hint: "[PBI id | task description] [skip-figma] [refresh]"

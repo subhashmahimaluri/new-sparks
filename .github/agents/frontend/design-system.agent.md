@@ -3,7 +3,6 @@ user-invocable: false
 name: design-system
 description: Forces UI to consume eq-one-design-system components and BLOCKS hand-rolled equivalents of components the design system already provides.
 model: sonnet
-tools: Read, Edit, Write, Grep, Glob
 loop: autoresearch
 version: 1.0.0
 status: stable

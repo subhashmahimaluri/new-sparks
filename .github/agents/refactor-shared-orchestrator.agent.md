@@ -1,7 +1,6 @@
 ---
 name: refactor-shared-orchestrator
 description: Find duplicated/common code across the MFEs and move it into eq-one-shared, rewriting every importer, under budget and behind the cache.
-tools: Read, Grep, Glob, Bash, Edit, Write, Agent, TodoWrite
 agents: ["*"]
 user-invocable: true
 argument-hint: [optional scope]
@@ -15,7 +14,7 @@ Turn "we keep copy-pasting this" into a governed, reviewed move into `eq-one-sha
 
 The optional `$ARGUMENTS` scope narrows the hunt (a glob, a package name, a feature area, or a symbol). With no scope, the whole frontend estate is in play.
 
-This is the main thread. Only this command uses the `Agent` tool to launch subagents — **subagents never launch further subagents.** `@supervisor` plans the stages and allocates the tool-call/token budget up front; `@critic` gates the move with a strict PASS/FAIL and loops back on FAIL; `@decision` resolves any ambiguity (which copy is canonical, where in `eq-one-shared` it belongs, reuse-vs-extend) with a logged, defensible call.
+This is the main thread. Only this command uses your `agents` delegation to run sub-agents — **subagents never launch further subagents.** `@supervisor` plans the stages and allocates the tool-call/token budget up front; `@critic` gates the move with a strict PASS/FAIL and loops back on FAIL; `@decision` resolves any ambiguity (which copy is canonical, where in `eq-one-shared` it belongs, reuse-vs-extend) with a logged, defensible call.
 
 The full run is narrated through the standardised three-part console via `console-render` (see `console/CONSOLE-UX.md`): an **Intro card** at the start, one **stage block** per stage, and a **Summary** at the end. `budget-check` is tallied after every stage and the `cache-lookup` primitive fronts the read-only scans so duplication analysis is never recomputed within a run.
 
@@ -24,7 +23,7 @@ The full run is narrated through the standardised three-part console via `consol
 ## Staged flow
 
 ### Stage 0 — Plan & budget (`@supervisor`)
-Launch `@supervisor` (opus) via the `Agent` tool to plan the stages, set the tool-call/token ceiling from `budget-policy`, and emit the **Intro card** through `console-render`. `@supervisor` owns the run and makes the go/no-go call between every stage. Nothing proceeds without it. It also opens the agent-memory ledger and scratchpad for the run (`shared/memory/memory-schema.md` runtime layout) here, seeding the first handoff envelope.
+Launch `@supervisor` (opus) by delegating via your `agents` list to plan the stages, set the tool-call/token ceiling from `budget-policy`, and emit the **Intro card** through `console-render`. `@supervisor` owns the run and makes the go/no-go call between every stage. Nothing proceeds without it. It also opens the agent-memory ledger and scratchpad for the run (`shared/memory/memory-schema.md` runtime layout) here, seeding the first handoff envelope.
 
 ### Stage 1 — DNA scan (`dna-precheck`)
 Run the `dna-precheck` skill (fronted by `cache-lookup`, keyed on the scope hash) to classify the candidate surface as **REUSE / EXTEND / CREATE** before anything moves. This is read-only and aligns with `dedup-policy` precedence **REUSE > EXTEND > CREATE** — if a shared home already exists, we reuse it rather than minting a new one. Results are cached for the rest of the run. Emit the stage block via `console-render`.
@@ -33,10 +32,10 @@ Run the `dna-precheck` skill (fronted by `cache-lookup`, keyed on the scope hash
 Using `Grep`/`Glob`/`Read` across the MFEs and `eq-nexus-ui`, identify duplicated and common code within the `$ARGUMENTS` scope (or estate-wide if none): repeated components, hooks, utils, types, Zustand stores, and API clients. Lean on `cache-lookup` so identical scans are not re-run. Where it is ambiguous which copy is canonical or whether two near-copies should be unified, launch `@decision` (opus) to make the defensible call and record the rationale. `@supervisor` gates go/no-go before any code moves. Emit the stage block via `console-render`.
 
 ### Stage 3 — Move to shared (`@shared-curator` + `move-to-shared`)
-Launch `@shared-curator` (sonnet) via the `Agent` tool. It runs `dna-precheck` to confirm the target location in `eq-one-shared`, then executes the `move-to-shared` skill to relocate the canonical code and **rewrite all importers** across the affected MFEs, flagging any now-dead copies for removal. Common Zustand stores and common API clients land in `eq-one-shared` per the topology. `@shared-curator` runs its autoresearch loop (`methodology/autoresearch-loop.md`) and `self-evaluate` before handing off; self-eval confidence `< 0.7` escalates it one rung (per `model-routing-policy`, logged + budgeted, never auto-downgraded). It then emits a structured handoff envelope (via the `handoff` skill) to `@critic`, routed by the orchestrator. Emit the stage block via `console-render`.
+Launch `@shared-curator` (sonnet) by delegating via your `agents` list. It runs `dna-precheck` to confirm the target location in `eq-one-shared`, then executes the `move-to-shared` skill to relocate the canonical code and **rewrite all importers** across the affected MFEs, flagging any now-dead copies for removal. Common Zustand stores and common API clients land in `eq-one-shared` per the topology. `@shared-curator` runs its autoresearch loop (`methodology/autoresearch-loop.md`) and `self-evaluate` before handing off; self-eval confidence `< 0.7` escalates it one rung (per `model-routing-policy`, logged + budgeted, never auto-downgraded). It then emits a structured handoff envelope (via the `handoff` skill) to `@critic`, routed by the orchestrator. Emit the stage block via `console-render`.
 
 ### Stage 4 — Critic gate (`@critic`)
-Launch `@critic` (opus) via the `Agent` tool, reading `@shared-curator`'s handoff envelope, to review the move adversarially against EQ standards and `dedup-policy`/`path-policy`: correct canonical placement, every importer rewritten, no orphaned duplicates left behind, no MFE boundary violated. `@critic` returns **PASS / FAIL with required changes** and emits its own handoff envelope back to `@supervisor`.
+Launch `@critic` (opus) by delegating via your `agents` list, reading `@shared-curator`'s handoff envelope, to review the move adversarially against EQ standards and `dedup-policy`/`path-policy`: correct canonical placement, every importer rewritten, no orphaned duplicates left behind, no MFE boundary violated. `@critic` returns **PASS / FAIL with required changes** and emits its own handoff envelope back to `@supervisor`.
 - **FAIL → loop back to Stage 3** with the required changes; `@shared-curator` fixes and re-submits. Two critic FAILs is an escalation trigger per `model-routing-policy`. A FAIL **blocks** the stage until fixed.
 - **PASS →** proceed to Summary.
 Emit the stage block via `console-render`.

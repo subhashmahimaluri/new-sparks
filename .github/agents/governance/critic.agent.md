@@ -3,7 +3,6 @@ user-invocable: false
 name: critic
 description: Adversarial governance reviewer — returns strict PASS/FAIL with required changes on every other agent's output; a FAIL blocks the stage.
 model: opus
-tools: Read, Grep, Glob, Bash
 loop: single-shot
 version: 1.0.0
 status: stable

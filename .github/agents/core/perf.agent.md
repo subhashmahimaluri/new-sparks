@@ -7,7 +7,6 @@ version: 1.0.0
 status: stable
 layer: core
 category: core
-tools: Read, Grep, Glob, Bash
 loop: single-shot
 uses_skills: cache-lookup
 constraints:

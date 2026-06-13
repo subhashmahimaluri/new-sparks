@@ -3,7 +3,6 @@ user-invocable: false
 name: codegen
 description: General-purpose, language-agnostic code generation and surgical edits when no specialist agent owns the change.
 model: sonnet
-tools: Read, Edit, Write, Bash, Grep, Glob
 loop: autoresearch
 version: 1.0.0
 status: active

@@ -3,7 +3,6 @@ user-invocable: false
 name: supervisor
 description: Governance owner of the run — plans stages, allocates tool-call/token budget, enforces guardrails, and gives the go/no-go verdict between stages.
 model: opus
-tools: Read, Grep, Glob, TodoWrite
 loop: single-shot
 version: 1.0.0
 status: active

@@ -3,7 +3,6 @@ user-invocable: false
 name: db
 description: Enforces data-access correctness on the ExperienceAPI BFF — async-only DB calls (G8), parameterised/ORM queries never string-concat SQL (G9), connection/transaction/timeout patterns, and no N+1; pairs with @downstream-connector and @bff-shaper.
 model: sonnet
-tools: Read, Edit, Write, Bash, Grep, Glob
 loop: autoresearch
 version: 1.0.0
 status: stable

@@ -3,7 +3,6 @@ user-invocable: false
 name: tester
 description: Writes and runs unit tests for FE/BFF changes and reads results — mechanical, well-scoped, Haiku-first.
 model: haiku
-tools: Read, Edit, Write, Bash, Grep, Glob
 loop: autoresearch
 version: 1.0.0
 status: stable

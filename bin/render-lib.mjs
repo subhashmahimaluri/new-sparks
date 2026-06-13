@@ -145,24 +145,36 @@ function injectFm(content, keys) {
   return `---\n${lines}\n---\n\n${content}`;
 }
 
+// Strip the Claude `tools:` frontmatter line. Copilot custom agents default to ALL tools when `tools`
+// is unset; emitting Claude tool names (Read/Grep/Bash/Agent/TodoWrite) makes Copilot map NONE, so the
+// agent stalls asking the user to "enable tools." Least-privilege via Copilot tool-set names is a follow-up.
+const stripToolsLine = (content) => content.replace(/^tools:.*\n/m, '');
+
+// Rewrite Claude-only phrasing for Copilot: there is no "Agent tool" — sub-agent delegation is the `agents` field.
+const neutraliseClaudeisms = (body) => body
+  .replace(/the `Agent` tool to launch sub-?agents/gi, 'your `agents` delegation to run sub-agents')
+  .replace(/via the `Agent` tool/gi, 'by delegating via your `agents` list')
+  .replace(/`Agent` tool/g, 'sub-agent delegation');
+
 // Orchestrator → a top-level, user-invocable custom agent that may delegate to any sub-agent.
 function toCopilotOrchestrator(content, id, src) {
   const { fmMap, body } = parseFm(content);
+  // NOTE: `tools` is deliberately OMITTED → Copilot grants the full default toolset (file/terminal/MCP),
+  // so the agent runs instead of asking to enable tools. Delegation is the `agents` field.
   const fm = {
     name: `${id}-orchestrator`,
     description: fmMap['description'] || id,
-    tools: fmMap['allowed-tools'] || fmMap['tools'] || 'Read, Grep, Glob, Edit, Bash',
-    agents: '["*"]', // may delegate to any sub-agent
+    agents: '["*"]', // may delegate to any sub-agent (Copilot's delegation mechanism)
     'user-invocable': 'true', // appears in the Agents dropdown
   };
   if (fmMap['argument-hint']) fm['argument-hint'] = fmMap['argument-hint'];
   const head = '---\n' + Object.entries(fm).map(([k, v]) => `${k}: ${v}`).join('\n') + '\n---\n';
-  return head + banner(src, 'Copilot') + '\n' + body;
+  return head + banner(src, 'Copilot') + '\n' + neutraliseClaudeisms(body);
 }
 
 // Sub-agent → a custom agent in a category subfolder, delegation-only (kept out of the dropdown).
 function toCopilotSubagent(content, src) {
-  return withBanner(injectFm(content, { 'user-invocable': 'false' }), src, 'Copilot');
+  return withBanner(injectFm(stripToolsLine(content), { 'user-invocable': 'false' }), src, 'Copilot');
 }
 
 // Guardrail / principle → a path-scoped instruction that auto-applies everywhere.

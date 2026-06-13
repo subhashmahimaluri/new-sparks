@@ -3,7 +3,6 @@ user-invocable: false
 name: decision
 description: Governance arbiter that resolves run forks (vague PBI, missing contract, unclear code placement, reuse-vs-create) with a defensible, logged decision and confidence score.
 model: opus
-tools: Read, Grep, Glob
 loop: single-shot
 version: 1.0.0
 status: stable

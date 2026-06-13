@@ -3,7 +3,6 @@ user-invocable: false
 name: state
 description: Applies EQ Zustand store patterns to FE state; promotes common stores into eq-one-shared and blocks per-MFE store duplication.
 model: sonnet
-tools: Read, Edit, Write, Grep, Glob
 loop: autoresearch
 version: 1.0.0
 status: stable

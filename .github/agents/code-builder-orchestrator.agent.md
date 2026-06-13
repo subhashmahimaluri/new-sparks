@@ -1,7 +1,6 @@
 ---
 name: code-builder-orchestrator
 description: Implement a feature INTO existing EQ FE/BFF code (the day-2 complement to /scaffold's new structure) — ADO-aware, DNA-pre-checked, built by @codegen + specialists in parallel, tested, and gated by the governance trio under budget.
-tools: Read, Grep, Glob, Bash, Edit, Write, Agent, TodoWrite
 agents: ["*"]
 user-invocable: true
 argument-hint: "[PBI id | task description] [skip-figma]"
@@ -13,7 +12,7 @@ argument-hint: "[PBI id | task description] [skip-figma]"
 
 Turn `$ARGUMENTS` — an Azure DevOps PBI id (e.g. `PBI 51420`) or a free-text task description, optionally followed by `skip-figma` — into a **governed change landed inside code that already exists**. Where `/scaffold` mints *new* structure (a fresh MFE feature, a new `src/domains/<name>/` BFF domain), `/code-builder` is the **day-2 path**: it edits and extends the existing EQOne MFEs (`eq-nexus-ui` shell, `eq-one-saye-mfe` / `eq-one-sip-mfe` / `eq-one-shares-mfe`, `eq-one-shared`, `eq-one-design-system`) and the `ExperienceAPI` BFF (`src/domains/<name>/`) **in place** — reusing first, extending second, creating only when nothing fits.
 
-This command is the **main thread**: only it launches subagents via the `Agent` tool. **Subagents never launch further subagents.** Every stage is planned, budgeted, and gated by the governance trio:
+This command is the **main thread**: only it launches subagents by delegating via your `agents` list. **Subagents never launch further subagents.** Every stage is planned, budgeted, and gated by the governance trio:
 
 - **@supervisor** owns the run — plans the stages, allocates the tool-call/token budget from `budget-policy`, enforces the guardrails (`safety-rails`, `path-policy`, `dedup-policy`, `cache-policy`), and makes the go/no-go call between stages.
 - **@critic** is the strict quality gate — returns `PASS` / `FAIL` per gate. A `FAIL` **blocks** the stage and **loops back to Build** until fixed.

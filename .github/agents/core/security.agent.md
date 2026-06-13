@@ -3,7 +3,6 @@ user-invocable: false
 name: security
 description: Threat-reasoning reviewer — authz on every route/endpoint, no secrets, no PII in logs, and injection/SSRF surfaces across FE and BFF.
 model: opus
-tools: Read, Grep, Glob, Bash
 loop: single-shot
 version: 1.0.0
 status: stable

@@ -1,7 +1,6 @@
 ---
 name: resume-orchestrator
 description: Resume a prior eq-sparks run — a cloud->IDE handoff (Flow 3) OR a locally-interrupted run (IDE closed / crash / cancel) — WITHOUT re-fetching ADO or Figma. Read the story cache + ledger + last handoff envelope, re-enter the orchestrator named in metadata.json at the first pending stage, and continue the governed sequence to completion.
-tools: Read, Grep, Glob, Bash, Edit, Write, Agent, TodoWrite
 agents: ["*"]
 user-invocable: true
 argument-hint: "[run-id | latest]"
@@ -49,7 +48,7 @@ Read **`metadata.orchestrator`** to know WHICH orchestrator started the run (`sc
 Before any build agent writes a line, the resumed producers run the **dna-precheck** skill against the live repos to re-classify each remaining item **REUSE > EXTEND > CREATE** (`dedup-policy`) — the tree may have moved since the cloud run. The idempotent task ledger means **DONE work is skipped**, not redone. **@critic** gates the classification.
 
 ### Stage 4 — Continue the re-entered orchestrator's sequence (producers)
-Drive the PENDING stages through the **re-entered orchestrator's** governed sequence (the one named in `metadata.orchestrator`), launching only the agents that orchestrator's remaining stages require via the `Agent` tool. Depending on the orchestrator that may include:
+Drive the PENDING stages through the **re-entered orchestrator's** governed sequence (the one named in `metadata.orchestrator`), launching only the agents that orchestrator's remaining stages require by delegating via your `agents` list. Depending on the orchestrator that may include:
 - **@architect** (read-only) — confirm where the remaining change belongs (MFE / `eq-one-shared` / `eq-one-design-system` / BFF `src/domains/<name>/`) and the sub-task order.
 - Build/specialist producers — **@codegen**, **@mfe**, **@shared-curator** (via **move-to-shared**), **@design-system**, **@state**, **@contract** (via **contract-diff**), **@domain-folder**, **@bff-shaper**, **@downstream-connector**, **@contract-publisher**.
 - Verification — **@reviewer**, **@tester**, **@integration-tester**, **@contract-tester**, **@security**, **@scanner**, **@perf**, **@a11y**, **@docs**.
@@ -79,7 +78,7 @@ At the final stage **@supervisor** aggregates **all** envelopes (prior cloud-run
 3. **Replay context** (Stage 1): `Read` `metadata.json` (for `orchestrator`, `stages`, `pbi_id`), then the **story cache** `.eq-sparks/cache/story-cache/<pbi>.json` (the saved PBI + Figma context, located via `pbi_id`), the agent-memory **`ledger.jsonl`** (skip each `status: done` row whose `content_hash` is unchanged; a changed hash re-runs it), the **last `handoff/*.json` envelope** (its `self_eval` field is the last worker's self-eval — there is no standalone `self-eval.json`), and `scratchpad.md`. **Never** call `ado-context` / `figma-context`. Missing story cache -> launch **@decision** (proceed-with-gap or advise an explicit `refresh` re-run).
 4. **Re-enter & re-plan** (Stage 2): read `metadata.orchestrator`, re-enter THAT orchestrator's stage sequence at the first `pending` ledger stage (mapped against `metadata.stages`); launch **@supervisor** to state a NEW hypothesis for the remaining stages and re-budget them; **@critic** gates PASS/FAIL, loop back on FAIL.
 5. **Pre-check** (Stage 3): resumed producers run **dna-precheck** to re-classify REUSE/EXTEND/CREATE and skip DONE ledger items; **@critic** gates.
-6. **Continue the sequence** (Stage 4): drive the re-entered orchestrator's remaining stages — launch the producer + verification agents that orchestrator requires via the `Agent` tool; each runs its **autoresearch loop** (**dna-precheck** first, **self-evaluate** last) and emits a **handoff** envelope the orchestrator routes to the next agent; **console-render** per stage; **@critic** PASS/FAIL routes the envelope back on FAIL; **@supervisor** go/no-go and **budget-check** between stages; **@decision** resolves forks. **After every resumed stage the orchestrator appends a `status: done` line (with `content_hash`) to `ledger.jsonl`** so a second interruption resumes cleanly.
+6. **Continue the sequence** (Stage 4): drive the re-entered orchestrator's remaining stages — launch the producer + verification agents that orchestrator requires by delegating via your `agents` list; each runs its **autoresearch loop** (**dna-precheck** first, **self-evaluate** last) and emits a **handoff** envelope the orchestrator routes to the next agent; **console-render** per stage; **@critic** PASS/FAIL routes the envelope back on FAIL; **@supervisor** go/no-go and **budget-check** between stages; **@decision** resolves forks. **After every resumed stage the orchestrator appends a `status: done` line (with `content_hash`) to `ledger.jsonl`** so a second interruption resumes cleanly.
 7. **Summarise** (Stage 5): **@supervisor** aggregates all `handoff/*.json` envelopes; **console-render** emits the Summary; persist updated state to the run folder and agent-memory ledger.
 
 ---

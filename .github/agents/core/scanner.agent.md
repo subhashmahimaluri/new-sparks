@@ -3,7 +3,6 @@ user-invocable: false
 name: scanner
 description: Mechanical scans — dependency diffs, dead-code detection, secret-pattern regex, lint output — feeding @shared-curator and @security.
 model: haiku
-tools: Read, Grep, Glob, Bash
 loop: single-shot
 version: 0.1.0
 status: poc

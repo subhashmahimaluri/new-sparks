@@ -7,7 +7,6 @@ version: 1.0.0
 status: stable
 layer: bff
 category: bff
-tools: Read, Edit, Write, Bash, Grep, Glob
 loop: autoresearch
 uses_skills: dna-precheck, contract-diff, cache-lookup, self-evaluate
 constraints:

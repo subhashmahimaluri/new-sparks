@@ -3,7 +3,6 @@ user-invocable: false
 name: infra
 description: Read-only observability/infra reporter — reads the telemetry sink (local JSONL today, NewRelic when enabled), enforces deploy/quality gates G7 + G13, and surfaces run cost/health to @supervisor and the console. Reports, never deploys.
 model: sonnet
-tools: Read, Grep, Glob, Bash
 loop: single-shot
 version: 0.1.0
 status: poc
