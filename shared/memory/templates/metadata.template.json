@@ -1,0 +1,8 @@
+{
+  "_comment": "TEMPLATE — the run header (the fields that were the Layer-1 scratchpad frontmatter). Canonical runtime location: .eq-sparks/agent-memory/<run-id>/metadata.json (gitignored). Copied at run start; replace every <placeholder>. Contract: shared/memory/memory-schema.md. run_id MUST equal the <run-id> path segment; profile MUST be one of the five canonical profiles (fe-rootmfe | fe-childmfe | fe-shared | fe-designsystem | be-experienceapi); any owning agent id MUST be an exact roster id.",
+  "run_id": "<run-id>",
+  "pbi_id": "<pbi-id>",
+  "profile": "<profile>",
+  "branch": "<branch>",
+  "started_at": "<iso-8601-utc>"
+}

@@ -1,0 +1,133 @@
+# =============================================================================
+# .eq-sparks.yml  —  per-repo config (EXAMPLE)
+# -----------------------------------------------------------------------------
+# Copy this file to `.eq-sparks.yml` at the root of a consumer repo and trim to
+# taste. eq-sparks syncs the agentic OS into a gitignored `.eq-sparks/` folder;
+# this file is the ONLY eq-sparks artefact a consumer repo commits. It tells the
+# harness which repo it is sitting in, which adapters to render, and the run-time
+# guardrails (model routing, budgets, cache, path allow/deny) for THIS repo.
+#
+# Precedence: values here OVERRIDE platform defaults shipped in
+# shared/guardrails/ (budget-policy, model-routing-policy, path-policy,
+# cache-policy). They do NOT override an agent's own `model:` frontmatter unless
+# you explicitly set model_routing.default_tier below.
+# =============================================================================
+
+# Which slice of the EQOne / ExperienceAPI estate this repo is. Drives the
+# default path allow/deny lists and which frontend/bff agents are in scope.
+#   fe-rootmfe       -> eq-nexus-ui (the RootMFE shell: routing, module wiring)
+#   fe-childmfe      -> eq-one-saye-mfe | eq-one-sip-mfe | eq-one-shares-mfe
+#   fe-shared        -> eq-one-shared (common layout/auth/clients/stores)
+#   fe-designsystem  -> eq-one-design-system (facade over eq-one-studio Storybook)
+#   be-experienceapi -> ExperienceAPI (C#/ASP.NET BFF monorepo, src/domains/*)
+profile: fe-childmfe
+
+# Pin the synced platform version. `latest` tracks the eq-sparks main line;
+# pin to a tag (e.g. "1.4.0") once you want reproducible runs.
+version: latest
+
+# Output formats the harness renders into the repo. The default IDE set is
+# claude,copilot — Claude Code is canonical and runnable today; the .github
+# (Copilot) adapter is a fast-follow. Uncomment copilot once the adapter ships.
+adapters:
+  - claude
+  # - copilot   # default IDE note: claude,copilot — add when .github adapter ships
+
+# Enable MCP servers (ado, figma) used by the ado-context / figma-context skills.
+# Set false to run fully offline (skills that need MCP will no-op + log).
+mcp: true
+
+# ---------------------------------------------------------------------------
+# Model routing — see shared/guardrails/model-routing-policy.
+# HAIKU-first ladder. Each agent carries its own `model:` field in frontmatter;
+# this block only OVERRIDES it. Leave default_tier as per-agent to honour the
+# roster (haiku = mechanical, sonnet = codegen/specialists, opus = governance
+# trio + @architect + @security, invoked sparingly).
+# ---------------------------------------------------------------------------
+model_routing:
+  default_tier: per-agent      # per-agent | haiku | sonnet | opus
+                               # agents carry their own model: field;
+                               # this only overrides it.
+  allow_escalation: true       # escalate ONE rung on self-eval confidence <0.7
+                               # or two @critic FAILs. Logged + budgeted.
+  max_tier: opus               # ceiling; escalation never climbs past this.
+                               # never auto-downgrades.
+
+# ---------------------------------------------------------------------------
+# Budgets — see shared/guardrails/budget-policy. Enforced by @supervisor and
+# tallied by the budget-check skill. A run that hits a ceiling stops at the next
+# stage gate (go/no-go), it does not silently truncate.
+# ---------------------------------------------------------------------------
+budgets:
+  max_iterations: 5            # max escalation/retry loops per stage
+  cost_cap_usd: 2.0            # hard USD ceiling for the whole run
+  tool_budget: 60              # max tool calls for the whole run
+
+# ---------------------------------------------------------------------------
+# Cache — see shared/guardrails/cache-policy. Per-run skill-output cache keyed
+# (skill_id, version, input_hash). NEVER caches writes/tests/self-eval/LLM
+# completions. Cross-run cache is opt-in and only for stable PBI metadata.
+# ---------------------------------------------------------------------------
+cache:
+  per_run: true                # reuse skill output within a single run
+  cross_run: false             # opt-in: persist stable PBI metadata across runs
+
+# ---------------------------------------------------------------------------
+# Telemetry / observability. Agents & skills emit one JSONL event per action.
+# The DEFAULT sink is the local .eq-sparks/telemetry/<run-id>.jsonl file, which
+# works TODAY with no provisioning — @infra reads whichever sink is active and
+# nothing blocks on the local sink. Switch to `newrelic` only once the NewRelic
+# block below is provisioned and enabled.
+# ---------------------------------------------------------------------------
+telemetry:
+  sink: local                  # local | newrelic
+
+  # -------------------------------------------------------------------------
+  # NewRelic sink — PLUGGABLE and OFF until provisioned. While enabled is
+  # false, agents work on the local JSONL sink above and nothing is sent to
+  # NewRelic. Flip telemetry.newrelic.enabled to true AND set telemetry.sink:
+  # newrelic to activate. Credentials come from the environment / secret store
+  # ONLY — never commit them here.
+  # -------------------------------------------------------------------------
+  newrelic:
+    enabled: false             # OFF until provisioned; local sink is authoritative
+    account_id: "<set via env NEW_RELIC_ACCOUNT_ID>"
+    license_key: "<set via env NEW_RELIC_LICENSE_KEY — never commit>"
+    region: us                 # us | eu
+    custom_event_prefix: EqSparks  # NewRelic custom event namespace prefix
+
+# ---------------------------------------------------------------------------
+# Path policy — see shared/guardrails/path-policy. The allowlist scopes where
+# build agents (@codegen, @mfe, @state, @domain-folder, ...) may write; the
+# denylist is a hard stop even if something slips into the allowlist. Tune these
+# to match your repo's profile — the defaults below suit fe-childmfe.
+# ---------------------------------------------------------------------------
+paths_allowlist:
+  - "src/**"                   # the MFE's own source
+  - "tests/**"                 # unit / integration / contract tests
+  - "stories/**"               # Storybook stories
+  - "*.md"                     # READMEs / changelogs (@docs)
+  # For fe-shared add:        "src/shared/**" (target of move-to-shared)
+  # For be-experienceapi use: "src/domains/<name>/**" (one domain folder only)
+
+paths_denylist:
+  - ".eq-sparks/**"            # the synced agentic OS is read-only to agents
+  - ".github/**"               # CI / adapter output is not hand-edited
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/*.lock"                # no dependency churn (safety-rails)
+  - "**/.env*"                 # no secrets, ever (safety-rails)
+  - "**/secrets/**"
+  - "eq-one-design-system/**"  # consume the design system; never hand-roll it
+
+# ---------------------------------------------------------------------------
+# Integrations. Auth is INTERACTIVE — no tokens live in this file.
+# ---------------------------------------------------------------------------
+integrations:
+  ado:
+    org: <your-ado-org>        # Azure DevOps organisation
+    project: <your-project>    # Azure DevOps project
+    # Auth is interactive via the ADO MCP server — do NOT put a PAT here.
+  figma:
+    # Auth is browser / OAuth via the Figma MCP server — no token here.
+    enabled: true

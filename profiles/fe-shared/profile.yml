@@ -1,0 +1,91 @@
+# =============================================================================
+# eq-sparks profile: fe-shared
+# -----------------------------------------------------------------------------
+# The common-code profile. Targets eq-one-shared, the home for anything reused
+# across MFEs (layout, auth, common API clients, common Zustand stores).
+# Anything reused MOVES here. This profile refines the coarse "ui" profile
+# (see profiles/README.md and EQ-SPARKS-POC-PLAN.md section 6) and is anchored
+# by @shared-curator, the enforcer of "no repeat code / move to shared".
+# It deliberately drops the screen-level agents (@design-system, @contract,
+# @a11y, @mfe) — shared owns library code, not screens or the FE/BFF boundary.
+# =============================================================================
+
+profile: fe-shared
+maps_to_today: ui
+for_repo: eq-one-shared
+
+# --- Agents pulled into this profile (exact roster ids) ---------------------
+agents:
+  # Governance trio (opus, invoked sparingly once per stage)
+  - supervisor          # owns the run: plans stages, allocates budget, go/no-go
+  - decision            # resolves ambiguity (esp. reuse-vs-extend-vs-create) with a logged call
+  - critic              # strict PASS/FAIL quality gate; a FAIL blocks the stage
+  # Shared-code specialists (sonnet)
+  - shared-curator      # detects duplicated/common code and MOVES it to eq-one-shared
+  - state               # EQ Zustand patterns; common stores live here
+  - codegen             # general-purpose library code + surgical edits
+  - reviewer            # standard EQ-convention review before @critic
+  # Mechanical core (haiku)
+  - tester              # writes + runs unit tests, reads results
+  - scanner             # dependency diffs, dead-code, secret regex, lint
+  - docs                # READMEs / JSDoc / changelogs to match the diff
+# NOTE: @infra and @learner are PLATFORM agents (agents/platform/) operating at
+# the OS level ACROSS all profiles — telemetry/gate enforcement (G7/G13) and the
+# curated-learning loop (G14) respectively. They are not pulled per-profile.
+
+# --- Skills these agents use (the platform skills are always present) --------
+# All agents run the autoresearch (A-Rag) loop and compose via the handoff
+# protocol (see methodology/: autoresearch-loop.md + handoff-protocol.md).
+skills:
+  - dna-precheck        # cross-repo reuse pre-check BEFORE any code is generated
+  - self-evaluate       # mandatory worker self-check before handoff
+  - handoff             # platform skill: read/write the agent->agent handoff envelope
+  - cache-lookup        # the cache primitive (per-run skill-output cache)
+  - console-render      # standardised three-part orchestrator console
+  - budget-check        # tallies tool-calls + tokens against the ceiling
+  - move-to-shared      # relocate duplicated code here + rewrite all importers across MFEs
+
+# --- Orchestrators relevant to shared ---------------------------------------
+orchestrators:
+  - /refactor-shared    # find duplicated/common code and move it into eq-one-shared
+  - /review             # 6-lens review gated by the governance trio
+  - /scaffold           # PBI -> governed scaffold (when new common code is the target)
+  - /code-builder       # implement a PBI/task into EXISTING shared library code (vs /scaffold)
+  - /fix-defect         # diagnose + fix a defect from PBI / bug id / stack trace
+  - /unit-test          # author/run unit tests to a coverage target
+  - /security           # threat review + fix
+  - /performance        # perf audit + optimise (N+1 / render)
+  - /resume             # resume a prior cloud->IDE run without re-fetching ADO/Figma
+
+# --- Model ladder caps (haiku-first; escalate ONE rung on low confidence) ----
+model_caps:
+  default_tier: sonnet
+  max_tier: opus
+  allow_escalation: true   # <0.7 self-eval confidence or two critic FAILs; logged + budgeted
+
+# --- Budget ceiling for a single run (per budget-policy) --------------------
+budget:
+  max_iterations: 5
+  cost_cap_usd: 2.0
+  tool_budget: 60
+
+# --- Caching (per cache-policy) ---------------------------------------------
+cache:
+  per_run: true            # skill-output cache keyed (skill_id, version, input_hash)
+  cross_run: false         # opt-in only for stable PBI metadata; off by default here
+
+# --- Path policy (per path-policy): the shared library repo -----------------
+paths_allowlist:
+  - src/                   # shared library source
+  - src/layout/
+  - src/auth/
+  - src/api-clients/       # common API clients
+  - src/stores/            # common Zustand stores
+  - tests/
+  - "*.md"
+paths_denylist:
+  - .eq-sparks/            # the hidden agentic-OS sync folder — never write here
+  - node_modules/
+  - dist/
+  - "**/*.env*"            # never touch secrets/config env files
+  - src/domains/           # BFF territory — out of bounds for a FE profile

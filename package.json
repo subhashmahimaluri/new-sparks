@@ -1,0 +1,34 @@
+{
+  "name": "eq-sparks",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Central agentic harness for the Equiniti (EQ) frontend + BFF estate — agents, orchestrators, skills, guardrails and the hidden agentic OS (budget, cache, memory, telemetry), rendered into Claude Code and GitHub Copilot.",
+  "type": "module",
+  "bin": {
+    "eq-sparks": "cli/eq-sparks.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "render": "node bin/render-claude.mjs && node bin/render-copilot.mjs",
+    "render:claude": "node bin/render-claude.mjs",
+    "render:copilot": "node bin/render-copilot.mjs"
+  },
+  "files": [
+    "agents",
+    "skills",
+    "orchestrators",
+    "methodology",
+    "shared",
+    "console",
+    "instructions",
+    "profiles",
+    "bin",
+    "cli",
+    "templates",
+    "install.js",
+    "install.sh",
+    ".eq-sparks.yml.example"
+  ]
+}

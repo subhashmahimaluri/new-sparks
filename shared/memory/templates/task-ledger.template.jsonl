@@ -1,0 +1,3 @@
+{"task_id":"stage.bff.shape-response","content_hash":"sha256:0a1b2c3d4e5f60718293a4b5c6d7e8f90112233445566778899aabbccddeeff0","status":"done","agent":"bff-shaper","stage":"scaffold","ts":"2026-06-13T09:14:02Z"}
+{"task_id":"stage.frontend.summary-card","content_hash":"sha256:1122334455667788990011223344556677889900aabbccddeeff00112233445566","status":"pending","agent":"codegen","stage":"scaffold","ts":"2026-06-13T09:15:47Z"}
+{"task_id":"stage.contract.publish-payments","content_hash":"sha256:99aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899","status":"blocked","agent":"contract-publisher","stage":"contract-sync","ts":"2026-06-13T09:17:33Z"}

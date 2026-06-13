@@ -1,0 +1,87 @@
+# =============================================================================
+# eq-sparks profile: fe-designsystem
+# -----------------------------------------------------------------------------
+# The design-system facade profile. Targets eq-one-design-system, a facade over
+# the eq-one-studio Storybook from which the UI consumes components (and NEVER
+# hand-rolls what the design system provides). This profile refines the coarse
+# "ui" profile (see profiles/README.md and EQ-SPARKS-POC-PLAN.md section 6)
+# down to a lean component-quality roster: @design-system + @a11y do the work,
+# with no @mfe / @state / @contract (no shell wiring, stores, or BFF boundary
+# concerns) and no @scanner (component lint folds into @reviewer here).
+# =============================================================================
+
+profile: fe-designsystem
+maps_to_today: ui
+for_repo: eq-one-design-system
+
+# --- Agents pulled into this profile (exact roster ids) ---------------------
+agents:
+  # Governance trio (opus, invoked sparingly once per stage)
+  - supervisor          # owns the run: plans stages, allocates budget, go/no-go
+  - decision            # resolves ambiguity with a logged, defensible call
+  - critic              # strict PASS/FAIL quality gate; a FAIL blocks the stage
+  # Design-system specialists (sonnet) + a11y (haiku)
+  - design-system       # owns the facade; blocks hand-rolled equivalents of DS components
+  - a11y                # WCAG 2.2 AA checks on every component (aria, focus, contrast, keyboard)
+  - reviewer            # standard EQ-convention review before @critic
+  # Mechanical core (haiku)
+  - tester              # writes + runs unit/component tests, reads results
+  - docs                # READMEs / JSDoc / changelogs to match the diff
+# NOTE: @infra and @learner are PLATFORM agents (agents/platform/) operating at
+# the OS level ACROSS all profiles — telemetry/gate enforcement (G7/G13) and the
+# curated-learning loop (G14) respectively. They are not pulled per-profile.
+
+# --- Skills these agents use (the platform skills are always present) --------
+# All agents run the autoresearch (A-Rag) loop and compose via the handoff
+# protocol (see methodology/: autoresearch-loop.md + handoff-protocol.md).
+skills:
+  - dna-precheck        # cross-repo reuse pre-check BEFORE any component is generated
+  - self-evaluate       # mandatory worker self-check before handoff
+  - handoff             # platform skill: read/write the agent->agent handoff envelope
+  - cache-lookup        # the cache primitive (per-run skill-output cache)
+  - console-render      # standardised three-part orchestrator console
+  - budget-check        # tallies tool-calls + tokens against the ceiling
+  - figma-context       # MCP:figma — fetch design context from a Figma URL for components
+
+# --- Orchestrators relevant to the design system ----------------------------
+orchestrators:
+  - /scaffold           # PBI -> governed scaffold of a new/extended DS component
+  - /review             # 6-lens review gated by the governance trio
+  - /code-builder       # implement a PBI/task into an EXISTING DS component (vs /scaffold)
+  - /fix-defect         # diagnose + fix a defect from PBI / bug id / stack trace
+  - /unit-test          # author/run unit/component tests to a coverage target
+  - /accessibility      # WCAG 2.2 AA audit + fix on a component/screen/PR
+  - /security           # threat review + fix
+  - /performance        # perf audit + optimise (bundle/render)
+  - /resume             # resume a prior cloud->IDE run without re-fetching ADO/Figma
+
+# --- Model ladder caps (haiku-first; escalate ONE rung on low confidence) ----
+model_caps:
+  default_tier: sonnet
+  max_tier: opus
+  allow_escalation: true   # <0.7 self-eval confidence or two critic FAILs; logged + budgeted
+
+# --- Budget ceiling for a single run (per budget-policy) --------------------
+budget:
+  max_iterations: 5
+  cost_cap_usd: 2.0
+  tool_budget: 60
+
+# --- Caching (per cache-policy) ---------------------------------------------
+cache:
+  per_run: true            # skill-output cache keyed (skill_id, version, input_hash)
+  cross_run: false         # opt-in only for stable PBI metadata; off by default here
+
+# --- Path policy (per path-policy): the design-system facade repo -----------
+paths_allowlist:
+  - src/                   # facade source over eq-one-studio Storybook
+  - src/components/
+  - "*.stories.*"          # Storybook stories for the facade
+  - tests/
+  - "*.md"
+paths_denylist:
+  - .eq-sparks/            # the hidden agentic-OS sync folder — never write here
+  - node_modules/
+  - dist/
+  - "**/*.env*"            # never touch secrets/config env files
+  - src/domains/           # BFF territory — out of bounds for a FE profile

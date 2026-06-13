@@ -1,0 +1,96 @@
+---
+name: dna-precheck
+description: Cross-repo "DNA" pre-check run BEFORE any code is generated. Scans eq-one-design-system, eq-one-shared, and sibling MFEs (FE) or existing domain folders (BFF) for an existing equivalent, then classifies each needed artifact as REUSE / EXTEND / CREATE. Primary "no repeat code, no dead code, move to shared" enforcement point.
+kind: skill
+id: dna-precheck
+version: 0.1.0
+status: draft
+cacheable: true
+---
+
+# dna-precheck
+
+## Description
+
+The **first thing any build agent does, before a single line is generated.** It asks one question of the whole estate: *does this already exist?*
+
+Given the set of artifacts a stage intends to create (a component, a Zustand store, an API client, a hook, a BFF domain folder, a shaper, a downstream connector...), `dna-precheck` scans the canonical reuse surfaces and returns a **verdict per artifact**:
+
+- **REUSE** — an equivalent already exists and is fit for purpose. Do NOT regenerate; import it.
+- **EXTEND** — a near-match exists; widen/parameterise it rather than fork a copy.
+- **CREATE** — no equivalent found anywhere; net-new code is justified.
+
+Reuse precedence is fixed by `dedup-policy`: **REUSE > EXTEND > CREATE.** A `create` verdict is the exception that must be earned by evidence of absence, never the default.
+
+This is the platform's primary enforcement point for "no repeat code, no dead code, move to shared." Its output feeds **@decision** (which adjudicates any reuse-vs-create fork it cannot call confidently) and **@shared-curator** (which acts on duplication it surfaces by moving common code to `eq-one-shared`).
+
+> Implementation note: a **Haiku-backed scan** does the cheap, mechanical surface-walk (glob + grep + symbol listing) across repos; **one Sonnet classify step** reasons over the candidates to assign each verdict with evidence. Opus is never needed here.
+
+## Inputs
+
+- `artifacts[]` — the list of intended artifacts for this stage. Each: `{ name, kind, summary }` where `kind ∈ component | hook | store | api-client | util | type | domain-folder | shaper | connector | contract`.
+- `scan_scope` — the repos/paths in scope, derived from the task. FE scopes always include `eq-one-design-system`, `eq-one-shared`, and the sibling child MFEs (`eq-one-saye-mfe`, `eq-one-sip-mfe`, `eq-one-shares-mfe`). BFF scopes include the existing `src/domains/<name>/` folders in ExperienceAPI.
+- `layer` — `fe` or `bff`, selecting which surfaces are walked.
+- `task_context` (optional) — PBI title/summary so the classify step understands intent, not just names.
+
+## Outputs
+
+A single decision table, one row per requested artifact:
+
+| artifact | verdict | location | evidence |
+|----------|---------|----------|----------|
+| `AccountSummaryCard` | reuse | `eq-one-design-system/SummaryCard` | DS exposes `SummaryCard` with matching props; hand-rolling blocked by @design-system |
+| `usePortfolioStore` | extend | `eq-one-shared/stores/portfolioStore` | shared store covers 80%; add `dividends` slice rather than fork |
+| `SayeProjectionChart` | create | — | no chart primitive in DS or shared; no sibling MFE equivalent found |
+
+- `verdict` is one of `reuse | extend | create`.
+- `location` is the canonical path of the match (empty for `create`).
+- `evidence` is a one-line justification — the symbol/path matched, or the surfaces searched that came up empty.
+- A machine-readable copy of the table is emitted for downstream consumers (**@decision**, **@shared-curator**) and recorded against the run ledger so a `/resume` can skip a repeated scan.
+
+## Tools Needed
+
+- **Glob** — enumerate candidate files across the in-scope repos/paths.
+- **Grep** — find symbol/component/route/type names and import sites.
+- **Read** — confirm a candidate's shape (props, signature, export) before assigning `reuse`/`extend`.
+- `cache-lookup` — check for a cached result keyed on the scan-scope hash before walking the filesystem.
+
+This skill is **read-only**. It never writes, edits, or moves code — surfacing duplication is its job; **@shared-curator** (via `move-to-shared`) does the relocating.
+
+## Constraints
+
+- **cacheable: true (per-run, keyed on scan-scope hash).** The key is `hash(scan_scope + artifact names/kinds + skill version)`. Identical scopes within a run hit cache instead of re-walking repos. Per `cache-policy`, this is read-only scan output and is safe to cache; if cross-run caching is enabled it is treated as the same class as stable metadata. The cache MUST be busted when any in-scope repo's HEAD changes.
+- **Honours `path-policy`:** only the repos/paths in `scan_scope` are read; never reaches outside the estate.
+- **Honours `dedup-policy`:** verdict precedence is REUSE > EXTEND > CREATE; CREATE requires positive evidence of absence across all in-scope surfaces.
+- **Stays read-only:** no code is generated, modified, or moved here.
+- **fail_modes:**
+  - *Empty scan scope* → return all-`create` BUT flag low confidence and escalate to **@decision**; never silently green-light net-new code on a scope that was never searched.
+  - *Ambiguous near-match* (cannot confidently separate `extend` from `create`) → mark the row `extend` with the candidate in `location`, set a needs-review flag, and hand the fork to **@decision**.
+  - *Inaccessible repo / scan error* → fail loud with the unreachable path; do NOT default that surface to "nothing found," which would manufacture false `create` verdicts.
+  - *Cache hit on stale HEAD* → treat as a miss and re-scan.
+
+## When to invoke
+
+- **Always, as the very first step of any build/scaffold stage** — before `@codegen`, `@mfe`, `@state`, `@design-system`, `@domain-folder`, `@bff-shaper`, `@downstream-connector`, or `@contract-publisher` produces anything.
+- Inside `/scaffold` for every artifact the architect decomposed the PBI into.
+- Inside `/refactor-shared` to confirm a candidate truly is duplicated before `@shared-curator` moves it.
+- NOT for pure review/test/docs stages — those generate no new source surface to deduplicate.
+
+## How it works
+
+1. **Resolve scope.** From `layer` + `scan_scope`, assemble the surface list in precedence order: `eq-one-design-system` → `eq-one-shared` → sibling MFEs (FE), or existing `src/domains/<name>/` folders (BFF).
+2. **Cache-lookup.** Compute the scan-scope hash and call `cache-lookup`. On a fresh hit, return the cached table and stop.
+3. **Mechanical scan (Haiku).** For each artifact, Glob the surfaces and Grep for the name plus close lexical/semantic variants, collecting candidate paths and matched symbols.
+4. **Confirm candidates (Read).** Read the top candidates to verify shape — props, signatures, exports, route/type names — so a match is real, not just a name collision.
+5. **Classify (Sonnet).** For each artifact, reason over confirmed candidates against `task_context` and assign `reuse` / `extend` / `create`, respecting REUSE > EXTEND > CREATE and recording one-line evidence.
+6. **Emit the table** (human + machine form), set needs-review flags on any ambiguous fork, and write the result to the run ledger and cache.
+7. **Hand off.** Route ambiguous forks to **@decision**; surface duplication and move-candidates to **@shared-curator**.
+
+## Anti-patterns
+
+- **Defaulting to CREATE.** A `create` verdict with no evidence of a searched-and-empty surface is a bug. Absence must be demonstrated.
+- **Name-only matching.** A symbol-name hit is a candidate, not a verdict — Read and confirm shape before calling `reuse`.
+- **Skipping the design system.** UI artifacts MUST check `eq-one-design-system` first; a `create` for something the DS already provides will be blocked by **@design-system** downstream — catch it here.
+- **Treating a scan error as "nothing found."** An unreachable repo is a failure to report, not silent permission to generate.
+- **Moving code yourself.** This skill only surfaces duplication; relocation belongs to **@shared-curator** via `move-to-shared`.
+- **Caching across a HEAD change.** A stale scope hash hiding new sibling code defeats the entire purpose.

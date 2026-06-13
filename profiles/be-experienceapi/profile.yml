@@ -1,0 +1,98 @@
+# =============================================================================
+# eq-sparks profile: be-experienceapi
+# -----------------------------------------------------------------------------
+# The BFF profile. Targets the ExperienceAPI C#/ASP.NET monorepo, where each
+# domain is an independently-deployable folder (src/domains/<name>/) that
+# connects downstream APIs and "paints & polishes" request/response shapes for
+# the UI (BFF, not business logic). This profile maps to the coarse "backend"
+# profile (see profiles/README.md and EQ-SPARKS-POC-PLAN.md section 6) and is
+# the only profile that carries @security at opus on the BFF boundary.
+# =============================================================================
+
+profile: be-experienceapi
+maps_to_today: backend
+for_repo: ExperienceAPI
+
+# --- Agents pulled into this profile (exact roster ids) ---------------------
+agents:
+  # Governance trio + architect + security (opus, invoked sparingly per stage)
+  - supervisor          # owns the run: plans stages, allocates budget, go/no-go
+  - decision            # resolves ambiguity with a logged, defensible call
+  - critic              # strict PASS/FAIL quality gate; a FAIL blocks the stage
+  - architect           # decides change shape + where code belongs (read-only)
+  - security            # authz on every route/endpoint, no secrets, no PII in logs, injection/SSRF
+  # BFF specialists (sonnet)
+  - domain-folder       # scaffolds a new independently-deployable src/domains/<name>/ folder
+  - bff-shaper          # paints & polishes downstream->UI request/response shapes
+  - downstream-connector # wires downstream clients with Polly resilience, timeouts, retries
+  - db                  # data-access correctness (G8 async / G9 parameterised; no N+1)
+  - contract-publisher  # publishes the per-domain OpenAPI/Swagger contract the FE consumes
+  - contract-tester     # authors contract tests pinning the FE<->BFF boundary; fails on drift
+  - integration-tester  # authors cross-module integration tests
+  - reviewer            # standard EQ-convention review before @critic
+  # Mechanical core (haiku)
+  - tester              # writes + runs unit tests, reads results
+  - scanner             # dependency diffs, dead-code, secret regex, lint
+  - docs                # READMEs / XML-doc / changelogs to match the diff
+# NOTE: @infra and @learner are PLATFORM agents (agents/platform/) operating at
+# the OS level ACROSS all profiles — telemetry/gate enforcement (G7/G13) and the
+# curated-learning loop (G14) respectively. They are not pulled per-profile.
+
+# --- Skills these agents use (the platform skills are always present) --------
+# All agents run the autoresearch (A-Rag) loop and compose via the handoff
+# protocol (see methodology/: autoresearch-loop.md + handoff-protocol.md).
+skills:
+  - dna-precheck        # cross-repo reuse pre-check BEFORE any code is generated
+  - self-evaluate       # mandatory worker self-check before handoff
+  - handoff             # platform skill: read/write the agent->agent handoff envelope
+  - cache-lookup        # the cache primitive (per-run skill-output cache)
+  - console-render      # standardised three-part orchestrator console
+  - budget-check        # tallies tool-calls + tokens against the ceiling
+  - ado-context         # MCP:ado — fetch ADO PBI context by id
+  - contract-diff       # diff this domain's OpenAPI vs FE types; report drift
+
+# --- Orchestrators relevant to the BFF --------------------------------------
+orchestrators:
+  - /scaffold           # PBI -> governed scaffold of a new BFF domain folder
+  - /review             # 6-lens review gated by the governance trio
+  - /contract-sync      # publish + sync the domain contract for the FE @contract agent
+  - /fix-pentest        # parse pentest findings, locate, fix, and re-verify
+  - /code-builder       # implement a PBI/task into EXISTING BFF code (vs /scaffold)
+  - /fix-defect         # diagnose + fix a defect from PBI / bug id / stack trace
+  - /unit-test          # author/run unit tests to a coverage target
+  - /security           # threat review + fix (complements report-driven /fix-pentest)
+  - /performance        # perf audit + optimise (N+1 / downstream fan-out)
+  - /resume             # resume a prior cloud->IDE run without re-fetching ADO
+
+# --- Model ladder caps (haiku-first; escalate ONE rung on low confidence) ----
+model_caps:
+  default_tier: sonnet
+  max_tier: opus
+  allow_escalation: true   # <0.7 self-eval confidence or two critic FAILs; logged + budgeted
+
+# --- Budget ceiling for a single run (per budget-policy) --------------------
+budget:
+  max_iterations: 5
+  cost_cap_usd: 2.0
+  tool_budget: 60
+
+# --- Caching (per cache-policy) ---------------------------------------------
+cache:
+  per_run: true            # skill-output cache keyed (skill_id, version, input_hash)
+  cross_run: false         # opt-in only for stable PBI metadata; off by default here
+
+# --- Path policy (per path-policy): the ExperienceAPI BFF monorepo ----------
+paths_allowlist:
+  - src/domains/           # one independently-deployable folder per domain
+  - src/domains/**/Controllers/
+  - src/domains/**/Clients/      # downstream API clients (Polly resilience)
+  - src/domains/**/Contracts/    # published OpenAPI/Swagger per domain
+  - tests/
+  - "*.md"
+paths_denylist:
+  - .eq-sparks/            # the hidden agentic-OS sync folder — never write here
+  - bin/
+  - obj/
+  - "**/appsettings*.json" # never touch secrets/connection-string config
+  - "**/*.env*"            # never touch secrets/config env files
+  - src/                   # stay inside src/domains/ — no business logic outside BFF folders

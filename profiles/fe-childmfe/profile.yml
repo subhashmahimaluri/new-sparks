@@ -1,0 +1,97 @@
+# =============================================================================
+# eq-sparks profile: fe-childmfe
+# -----------------------------------------------------------------------------
+# The child-MFE feature profile. Targets the independent product MFEs
+# (eq-one-saye-mfe / eq-one-sip-mfe / eq-one-shares-mfe), which MUST NOT
+# duplicate code. This profile refines the coarse "ui" profile (see
+# profiles/README.md and EQ-SPARKS-POC-PLAN.md section 6) for feature work:
+# it carries @codegen + @state (feature code and Zustand stores live here),
+# leaning on dna-precheck and @design-system to keep "no repeat code".
+# =============================================================================
+
+profile: fe-childmfe
+maps_to_today: ui
+for_repo: eq-one-saye-mfe / eq-one-sip-mfe / eq-one-shares-mfe
+
+# --- Agents pulled into this profile (exact roster ids) ---------------------
+agents:
+  # Governance trio (opus, invoked sparingly once per stage)
+  - supervisor          # owns the run: plans stages, allocates budget, go/no-go
+  - decision            # resolves ambiguity with a logged, defensible call
+  - critic              # strict PASS/FAIL quality gate; a FAIL blocks the stage
+  # Frontend feature specialists (sonnet)
+  - mfe                 # scaffolds/extends the child MFE, respecting MFE boundaries
+  - state               # applies EQ Zustand store patterns; common stores -> eq-one-shared
+  - design-system       # forces eq-one-design-system consumption; blocks hand-rolled UI
+  - contract            # keeps FE types/clients aligned to the BFF contract; FAILs on drift
+  - codegen             # general-purpose feature code + surgical edits
+  - reviewer            # standard EQ-convention review before @critic
+  # Mechanical core (haiku)
+  - tester              # writes + runs unit tests, reads results
+  - a11y                # WCAG 2.2 AA checks (aria, focus, contrast, keyboard nav)
+  - scanner             # dependency diffs, dead-code, secret regex, lint
+  - docs                # READMEs / JSDoc / changelogs to match the diff
+# NOTE: @infra and @learner are PLATFORM agents (agents/platform/) operating at
+# the OS level ACROSS all profiles — telemetry/gate enforcement (G7/G13) and the
+# curated-learning loop (G14) respectively. They are not pulled per-profile.
+
+# --- Skills these agents use (the platform skills are always present) --------
+# All agents run the autoresearch (A-Rag) loop and compose via the handoff
+# protocol (see methodology/: autoresearch-loop.md + handoff-protocol.md).
+skills:
+  - dna-precheck        # cross-repo reuse pre-check BEFORE any code is generated
+  - self-evaluate       # mandatory worker self-check before handoff
+  - handoff             # platform skill: read/write the agent->agent handoff envelope
+  - cache-lookup        # the cache primitive (per-run skill-output cache)
+  - console-render      # standardised three-part orchestrator console
+  - budget-check        # tallies tool-calls + tokens against the ceiling
+  - ado-context         # MCP:ado — fetch ADO PBI context by id
+  - figma-context       # MCP:figma — fetch design context from a Figma URL
+  - contract-diff       # diff BFF OpenAPI vs FE types; report drift
+  - move-to-shared      # relocate duplicated code into eq-one-shared (reuse > extend > create)
+
+# --- Orchestrators relevant to a child MFE ----------------------------------
+orchestrators:
+  - /scaffold           # PBI -> governed cross-repo feature scaffold
+  - /review             # 6-lens review gated by the governance trio
+  - /contract-sync      # sync FE types to the latest BFF contract
+  - /refactor-shared    # move duplicated/common code into eq-one-shared
+  - /code-builder       # implement a PBI/task into EXISTING feature code (vs /scaffold)
+  - /fix-defect         # diagnose + fix a defect from PBI / bug id / stack trace
+  - /unit-test          # author/run unit tests to a coverage target
+  - /accessibility      # WCAG 2.2 AA audit + fix for a screen/route/PR
+  - /security           # threat review + fix
+  - /performance        # perf audit + optimise (bundle/render)
+  - /resume             # resume a prior cloud->IDE run without re-fetching ADO/Figma
+
+# --- Model ladder caps (haiku-first; escalate ONE rung on low confidence) ----
+model_caps:
+  default_tier: sonnet
+  max_tier: opus
+  allow_escalation: true   # <0.7 self-eval confidence or two critic FAILs; logged + budgeted
+
+# --- Budget ceiling for a single run (per budget-policy) --------------------
+budget:
+  max_iterations: 5
+  cost_cap_usd: 2.0
+  tool_budget: 60
+
+# --- Caching (per cache-policy) ---------------------------------------------
+cache:
+  per_run: true            # skill-output cache keyed (skill_id, version, input_hash)
+  cross_run: false         # opt-in only for stable PBI metadata; off by default here
+
+# --- Path policy (per path-policy): independent child-MFE repo --------------
+paths_allowlist:
+  - src/                   # feature source for this MFE only
+  - src/features/
+  - src/stores/            # MFE-local Zustand stores (common stores MOVE to shared)
+  - tests/
+  - "*.md"
+paths_denylist:
+  - .eq-sparks/            # the hidden agentic-OS sync folder — never write here
+  - node_modules/
+  - dist/
+  - "**/*.env*"            # never touch secrets/config env files
+  - ../eq-one-shared/      # shared is curated by @shared-curator, not from a child MFE
+  - src/domains/           # BFF territory — out of bounds for a FE profile

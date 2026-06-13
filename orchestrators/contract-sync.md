@@ -1,0 +1,86 @@
+---
+description: Sync FE TypeScript types and clients to the latest ExperienceAPI BFF contract for a domain, diffing for drift and patching under governance.
+argument-hint: "[domain name]"
+allowed-tools: Read, Grep, Glob, Bash, Edit, Write, Agent, TodoWrite
+---
+
+# /contract-sync
+
+Keep the frontend honest against the BFF. Given a single ExperienceAPI domain (`src/domains/<name>/`), this orchestrator reads the published contract, diffs it against the FE TypeScript types/clients, and patches the FE so the FE&harr;BFF boundary stops drifting. Mechanical where it can be, governed where it must be — and never over budget.
+
+**Domain to sync:** `$ARGUMENTS`
+
+---
+
+## Operating model (read first)
+
+- **`@supervisor` owns the run.** Before any stage it plans the staged flow, allocates the tool-call/token budget, and makes the go/no-go call between stages. Nothing proceeds without it.
+- **`@critic` is the gate.** It returns strict **PASS / FAIL**. A **FAIL blocks** the stage and loops back to the producing agent with required changes until it earns a PASS. It is not a cheerleader.
+- **`@decision` resolves ambiguity.** Unclear domain name, missing/unpublished contract, ambiguous type ownership, or a drift that could be either a FE bug or an intended BFF change — `@decision` inspects the repos and records a defensible call in the run log for human review.
+- **Cost discipline.** Contract reads and diffs go through the **cache** (`cache-lookup`); the read/diff stages are cacheable and keyed on the domain + contract hash, so a re-run with an unchanged contract is near-free. Patches, edits, and self-eval are **never** cached. `budget-check` is tallied after each stage; on a near-ceiling reading `@supervisor` trims scope or escalates the budget decision rather than silently overrunning.
+- **Model ladder.** Each launched agent runs at its default tier and escalates **one rung only** on low self-eval confidence (<0.7) or two `@critic` FAILs — logged and budgeted, never auto-downgraded.
+- **Console.** Every stage emits the standardised three-part console via **`console-render`** (see `console/CONSOLE-UX.md`): an **Intro card** at the start, **one block per stage**, and a **Summary** at the end.
+
+---
+
+## Staged flow
+
+### Stage 0 — Plan & budget (Intro card)
+`@supervisor` reads `$ARGUMENTS`, confirms the target domain folder exists under `src/domains/<name>/`, plans the stages below, and allocates the budget. It opens the per-run **agent-memory** ledger (`scratchpad.md`, `ledger.jsonl`, `metadata.json`, `handoff/` under `.eq-sparks/agent-memory/<run-id>/` per `shared/memory/memory-schema.md`). If the domain is vague, misspelled, or no contract is published for it, `@supervisor` hands the fork to **`@decision`**, which picks the intended domain (or stops the run) with a logged rationale. `console-render` emits the **Intro card**.
+
+### Stage 1 — Read the BFF contract
+The command reads the published OpenAPI/Swagger contract for the domain from `src/domains/<name>/`, going through **`cache-lookup`** first (this read is cacheable, keyed on domain + contract hash). The raw contract is captured as the source of truth for the diff. `console-render` emits the stage block.
+
+### Stage 2 — Diff FE types against the contract
+The command runs the **`contract-diff`** skill to diff the ExperienceAPI contract for the domain against the FE TypeScript types/clients, reporting drift: added / removed / changed fields and type mismatches. The diff result is cacheable on the same key, so an unchanged contract short-circuits here. If the diff is empty, `@supervisor` can call **go = done** and jump to the Summary. `console-render` emits the stage block.
+
+### Stage 3 — `@contract` patches the FE
+The command launches **`@contract`** (default tier `sonnet`) via the **Agent** tool to bring FE types/clients back into alignment with the BFF contract for the domain. Per dedup-policy, `@contract` runs **`dna-precheck`** before generating — favouring REUSE/EXTEND of existing FE types over new ones, and surfacing types that should move to `eq-one-shared` rather than being duplicated per MFE. It runs its **autoresearch loop** (`methodology/autoresearch-loop.md`), edits only FE files (honouring path-policy), and runs **`self-evaluate`** as its mandatory last step before emitting a structured handoff envelope (`handoff` skill) to `@critic`; confidence <0.7 triggers a one-rung escalation. Where a drift is genuinely ambiguous (is the FE wrong, or did the BFF intentionally change shape?), `@contract` defers to **`@decision`**. `console-render` emits the stage block.
+
+### Stage 4 — `@critic` gate (PASS / FAIL, loop-back on FAIL)
+The command launches **`@critic`** (tier `opus`, invoked sparingly) via the **Agent** tool to review the patch against EQ standards and the contract: no remaining drift, no hand-rolled types where a shared/generated type exists, types/clients faithful to the contract. **FAIL blocks** and loops back to Stage 3 with required changes; two FAILs escalate `@contract` one rung. On **PASS**, `@supervisor` makes the final go/no-go. `console-render` emits the stage block.
+
+### Stage 5 — Summary
+`@supervisor` aggregates the run by reading every `handoff/*.json` envelope in `seq` order; `budget-check` reports the final tool-call/token tally against the ceiling; `console-render` emits the **Summary** (drift found, files patched, types moved to `eq-one-shared` if any, critic verdict, budget used, any `@decision` calls).
+
+---
+
+## Handoff & memory
+
+Stages compose through structured **handoff envelopes**, not free text. At **Stage 0** `@supervisor` opens the per-run agent-memory ledger (`scratchpad.md`, `ledger.jsonl`, `metadata.json`, `handoff/` under `.eq-sparks/agent-memory/<run-id>/`) per the `shared/memory/memory-schema.md` runtime layout and `metadata.json` run header. Between stages the orchestrator (this main thread) **routes** the envelope from one agent to the next: a finishing agent writes its envelope to `handoff/<seq>-<from>-to-<to>.json` via the **`handoff`** skill, and the orchestrator launches the named recipient pointed at the latest envelope addressed to it (schema and routing in `methodology/handoff-protocol.md`).
+
+Build agents (here, **`@contract`**) run the **autoresearch (A-Rag) loop** (`methodology/autoresearch-loop.md`) and run **`self-evaluate`** as the mandatory last step before each handoff, populating the envelope's `self_eval`; `@critic` returns a self-assessed gate verdict and, on **FAIL**, routes the envelope **back** to `@contract` rather than forward. At **Stage 5** `@supervisor` aggregates **every** `handoff/*.json` envelope in `seq` order into the `console-render` Summary, so the run's reasoning trail and budget are reconstructed from on-disk record. This intra-run, agent→agent handoff is distinct from `/resume` (the cloud→IDE Flow-3 handoff).
+
+---
+
+## Steps
+
+1. `@supervisor` parses `$ARGUMENTS`, validates the domain under `src/domains/<name>/`, plans the stages, allocates budget, opens the agent-memory ledger (`memory-schema` runtime layout), and routes any ambiguity to `@decision`. `console-render` emits the **Intro card**.
+2. Read the published OpenAPI/Swagger contract for the domain via `cache-lookup` (cacheable; keyed on domain + contract hash).
+3. Run `contract-diff` to diff the BFF contract against the FE TypeScript types/clients; report added/removed/changed fields and type mismatches (cacheable on the same key). If no drift, skip to step 6.
+4. Launch `@contract` via the **Agent** tool to patch FE types/clients into alignment — autoresearch loop, `dna-precheck` first (REUSE > EXTEND > CREATE; common types move to `eq-one-shared`), edit FE files only, `self-evaluate` last, then emit a `handoff` envelope to `@critic`.
+5. Launch `@critic` via the **Agent** tool for a strict **PASS / FAIL**. On **FAIL**, loop back to step 4 with required changes (two FAILs escalate `@contract` one rung). On **PASS**, `@supervisor` confirms go/no-go.
+6. `@supervisor` aggregates every `handoff/*.json` envelope in `seq` order; `budget-check` tallies the run; `console-render` emits the **Summary**.
+
+> Note: only this command (the main thread) uses the **Agent** tool to launch subagents. Subagents never launch further subagents.
+
+---
+
+## Usage
+
+```
+/contract-sync saye
+```
+Syncs FE types/clients to the latest ExperienceAPI contract for the `saye` domain (`src/domains/saye/`).
+
+```
+/contract-sync sip
+```
+Syncs the `sip` domain — reads the contract via cache, diffs with `contract-diff`, patches with `@contract`, gates with `@critic`.
+
+```
+/contract-sync shares
+```
+Syncs the `shares` domain. If the contract is unchanged since the last run, the cache short-circuits the read/diff stages and the run completes near-free with an empty-drift Summary.
+
+`$ARGUMENTS` is the single domain name (e.g. `saye`, `sip`, `shares`). If it is ambiguous or no contract is published for it, `@decision` resolves the fork with a logged, defensible rationale before any patching begins.

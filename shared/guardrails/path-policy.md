@@ -1,0 +1,145 @@
+---
+id: path-policy
+title: Path Policy
+kind: guardrail
+version: 1.0.0
+status: active
+layer: agentic-os
+category: safety
+enforced: pre-tool-call
+applies_to: every agent and skill that calls Read, Edit, or Write
+---
+
+# Path Policy
+
+**What it does:** restricts which files any agent may read, edit, or create, and enforces that restriction **before any file tool call runs** — not after. The check is cheap (glob match, no I/O), runs first, and on violation the run is **BLOCKED**. No agent is allowed to wander outside its lane, and no agent silently "finds another path."
+
+This is the path half of the safety story; secrets, destructive commands, and write/test gates live in `safety-rails`. Budget enforcement lives in `budget-policy`; reuse/placement decisions live in `dedup-policy`.
+
+---
+
+## Why this exists
+
+With 23 agents acting across the EQOne frontend estate and the ExperienceAPI BFF, an unconstrained `Edit`/`Write` is the single highest-blast-radius mistake an agent can make — a docs-tier Haiku agent editing a CI workflow, a codegen agent dropping a key into `.env`, anyone touching the root `package.json`. The path policy makes the *universe of touchable files* an explicit, reviewable contract, and makes overreach fail loudly instead of succeeding quietly.
+
+---
+
+## Resolution order (allowlist defines the universe, denylist always wins)
+
+A path is permitted **only** if it survives all three layers, evaluated in order:
+
+1. **Project allowlist** — `paths_allowlist` in the consumer repo's `.eq-sparks.yml` defines the *entire universe* of files agents may touch. If a path is not in the allowlist, it is denied. (Empty/missing allowlist = nothing is touchable; fail closed.)
+2. **Project denylist** — `paths_denylist` in `.eq-sparks.yml` *subtracts* from the universe. **Deny always wins:** if a path matches both lists, it is denied. There is no allowlist entry that can override a denylist entry.
+3. **Agent restriction** — an individual agent (via its frontmatter `constraints.paths` / its `tools` glob scoping) may **further narrow** the universe to its own lane. An agent may **never expand** beyond the project allowlist, and never re-admit a denied path. Narrowing only.
+
+Mental model: `effective = (project_allow − project_deny) ∩ agent_scope`. Each layer can only shrink the set. The result is intersected, never unioned.
+
+---
+
+## EQOne default policy
+
+Ships as the recommended baseline `.eq-sparks.yml` for consumer repos. Tune per repo, but keep the deny block intact — it is the floor.
+
+### Default allow (the universe)
+
+```yaml
+paths_allowlist:
+  # Child MFEs — source only (eq-one-saye-mfe / eq-one-sip-mfe / eq-one-shares-mfe)
+  - "eq-one-*-mfe/src/**"
+  # RootMFE shell — routing, module wiring, cross-MFE contracts
+  - "eq-nexus-ui/src/**"
+  # Shared home for common code (layout, auth, common API clients, common stores)
+  - "eq-one-shared/src/**"
+  # Design-system facade source (consumes eq-one-studio Storybook)
+  - "eq-one-design-system/src/**"
+  # BFF — per-domain folders in the ExperienceAPI monorepo
+  - "ExperienceAPI/src/domains/**"
+  # Tests (FE + BFF), co-located or in __tests__
+  - "**/*.test.*"
+  - "**/*.spec.*"
+  - "**/__tests__/**"
+  # Docs, READMEs, changelogs, contracts
+  - "**/*.md"
+```
+
+### Default deny (always wins, never remove)
+
+```yaml
+paths_denylist:
+  # CI / CD
+  - "**/.github/workflows/**"
+  - "**/azure-pipelines*.yml"
+  # Secrets & environment
+  - "**/.env"
+  - "**/.env.*"
+  - "**/secrets/**"
+  - "**/*.pem"
+  - "**/*.key"
+  - "**/appsettings*.json"        # BFF connection strings / downstream creds
+  # Dependency locks (no silent dependency drift — see budget-policy/safety-rails)
+  - "**/package-lock.json"
+  - "**/yarn.lock"
+  - "**/pnpm-lock.yaml"
+  - "**/packages.lock.json"
+  # Repo-root manifests — placement decisions are @architect's call, not an edit
+  - "package.json"               # ROOT only; per-MFE package.json handled by agent scope
+  - "**/Dockerfile*"
+  - "**/docker-compose*.yml"
+  # Harness & agent config must not self-edit
+  - "**/CLAUDE.md"
+  - "**/.eq-sparks.yml"
+  - "**/.claude/**"
+```
+
+Rationale highlights: lockfiles + root `package.json` + `appsettings*.json` stay out of reach so no agent introduces a runtime dependency or rewires config as a side effect (reinforces "do NOT add runtime dependencies"). `CLAUDE.md`, `.eq-sparks.yml`, and `.claude/**` are denied so the harness cannot quietly rewrite its own guardrails mid-run.
+
+---
+
+## On violation
+
+When an agent attempts a Read/Edit/Write against a path that fails resolution:
+
+1. Emit telemetry event `guardrail:path-denied` with `{ agent_id, tool, attempted_path, layer_that_blocked }`.
+2. Return the sentinel `BLOCKED:forbidden-path` to the orchestrator.
+3. **Stop. Do not seek an alternative path, do not retry, do not "find a nearby file that is allowed."** A denied path is a signal that the *plan* is wrong, not the path string. The agent hands `BLOCKED:forbidden-path` back to `@supervisor`, which makes the go/no-go call; `@decision` resolves the placement if the lane was genuinely ambiguous.
+
+This is deliberately un-clever: silently routing around a deny is exactly the failure mode this policy exists to prevent.
+
+---
+
+## Where each agent's scope comes from
+
+- **Build/edit agents** (`@codegen`, `@mfe`, `@state`, `@design-system`, `@shared-curator`, `@domain-folder`, `@bff-shaper`, `@downstream-connector`, `@contract-publisher`, `@docs`, `@tester`, `@integration-tester`, `@contract-tester`) declare a write lane in frontmatter that is a strict subset of the allowlist — e.g. `@mfe` scoped to `eq-one-*-mfe/src/**` + `eq-nexus-ui/src/**`, `@bff-shaper` to `ExperienceAPI/src/domains/**`, `@docs` to `**/*.md`. `@shared-curator` and the `move-to-shared` skill are the only writers that legitimately span MFE → `eq-one-shared/src/**` (and they still cannot touch denied paths).
+- **Read-only agents** (`@architect`, `@critic`, `@reviewer`, `@security`, `@perf`, `@scanner`, `@a11y`, `@decision`, `@contract`, `@supervisor`) carry no `Edit`/`Write` tool at all — their path scope is moot for writes and the policy still governs their `Read`s against the universe.
+
+The cheapest enforcement is the right placement of the tool itself: an agent that never receives `Write` cannot violate a write path.
+
+---
+
+## Cheap path-check before any edit
+
+The path check runs **before** the tool call, costs no tokens and no model round-trip (pure glob match against the resolved set), and short-circuits to `BLOCKED:forbidden-path` on the first failing layer. Run it ahead of every `Edit`/`Write` and every `Read` so a denied access never consumes budget on an operation that was always going to be rejected.
+
+---
+
+## Implementation note per IDE
+
+The policy is one contract with two renderings:
+
+- **Claude Code (canonical for this POC, runnable now):** rendered as **agent frontmatter** — each agent's `tools` list omits `Edit`/`Write` unless it is a writer, and writer agents declare their lane via `constraints.paths`. The effective universe still comes from `.eq-sparks.yml`; the frontmatter is the *agent-restriction* layer (narrow-only). The pre-edit glob check enforces the intersection.
+- **Copilot (fast-follow):** rendered as a **tools allowlist plus an interceptor** that wraps file operations, evaluates the same three-layer resolution from `.eq-sparks.yml`, and rejects with `BLOCKED:forbidden-path` before the operation is dispatched.
+
+Same `.eq-sparks.yml`, same deny-wins resolution, same sentinel and telemetry on both surfaces.
+
+---
+
+## Quick reference
+
+| Rule | Behaviour |
+|---|---|
+| Allowlist | Defines the entire touchable universe; missing/empty = nothing touchable (fail closed). |
+| Denylist | Subtracts from the universe; **always wins** over any allow match. |
+| Agent scope | May narrow only — never expands the allowlist, never re-admits a denied path. |
+| Enforcement timing | Before any Read/Edit/Write tool call; cheap glob, no I/O, no tokens. |
+| On violation | `guardrail:path-denied` telemetry + `BLOCKED:forbidden-path`; **do not seek an alternative path.** |
+| Effective set | `(project_allow − project_deny) ∩ agent_scope`. |

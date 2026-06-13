@@ -1,0 +1,15 @@
+# Methodology
+
+The **methodology/** layer is the *how* of eq-sparks — the execution discipline every agent and orchestrator runs by, kept separate from the *what* (agents, skills, orchestrators) and the *rules* (`shared/guardrails/`). It has two pieces. The **autoresearch (A-Rag) loop** ([`autoresearch-loop.md`](./autoresearch-loop.md)) is the canonical 9-step think→search→read→hypothesise→act→verify→self-evaluate→iterate→handoff cycle for every agent with frontmatter `loop: autoresearch` (`loop: single-shot` agents do one focused pass, then self-assess + handoff). It is the Karpathy method — lineage: **Andrej Karpathy** — restate the task before coding, search before reading, change surgically, verify against Done Criteria. The **handoff protocol** ([`handoff-protocol.md`](./handoff-protocol.md)) is how agents compose without free text: each emits a structured handoff envelope (via the `handoff` skill) that the orchestrator routes to the next agent and `@supervisor` aggregates into the Summary.
+
+The loop never runs unbounded. Step 7 (self-evaluate) drives the model-routing escalation decision; steps 8–9 are bounded by budget. `writesDiff` agents run the diff-based `self-evaluate` skill as their mandatory last step; read-only / gate / planning agents self-*assess* their report's completeness and confidence instead (an empty diff must never read as FAIL). Everything below is enforced by the guardrails in `shared/guardrails/` and recorded in the agent-memory runtime under `.eq-sparks/agent-memory/<run-id>/` (gitignored; contract defined by `shared/memory/memory-schema.md`, templates in `shared/memory/templates/`).
+
+| Concept | File | Enforced by |
+|---|---|---|
+| Autoresearch (A-Rag) loop — the 9-step cycle | [`methodology/autoresearch-loop.md`](./autoresearch-loop.md) | `budget-policy` (`max_iterations`, `tool_budget` via `budget-check`); `model-routing-policy` (one-rung escalation) |
+| Single-shot pass (plan/decide/review/scan/check) | [`methodology/autoresearch-loop.md`](./autoresearch-loop.md) | `budget-policy`; agent frontmatter `loop: single-shot` |
+| Agent→agent handoff protocol (envelope) | [`methodology/handoff-protocol.md`](./handoff-protocol.md) | `handoff` skill; `path-policy` (envelope path); `@supervisor` (routing + Summary) |
+| Self-evaluate (Done-Criteria grade, confidence, `should_retry`) | `skills/self-evaluate/SKILL.md` | `self-evaluate` skill (writesDiff agents); `model-routing-policy` (confidence `< 0.7` → escalate) |
+| Per-run working memory (scratchpad, ledger, envelopes, metadata) | `shared/memory/memory-schema.md` + `shared/memory/templates/` | `memory-schema`; `path-policy` (`.eq-sparks/agent-memory/<run-id>/` only); `dedup-policy` (idempotent ledger) |
+| Budget ceiling (iterations / tool calls / cost) | `shared/guardrails/budget-policy.md` | `budget-policy` via `budget-check`; `@supervisor` (allocate + reconcile, never overridden) |
+| Model escalation (Haiku-first, one-rung, logged) | `shared/guardrails/model-routing-policy.md` | `model-routing-policy`; `@supervisor` (grants escalation); `@critic` (FAIL ×2 trigger) |

@@ -1,0 +1,59 @@
+{
+  "run_id": "2026-06-13-scaffold-PBI-48213-a7f1",
+  "seq": 3,
+  "from_agent": "@architect",
+  "to_agent": "@codegen",
+  "stage": "design->build",
+  "task": "Scaffold the eq-one-saye child MFE 'maturity-summary' feature surface and wire its remote + route into the eq-nexus-ui RootMFE shell per the module-federation contract.",
+  "hypothesis": "The summary card and balance store already exist in eq-one-shared/eq-one-design-system (REUSE); only the maturity-summary feature shell in eq-one-saye-mfe and its shell registration in eq-nexus-ui need to be created.",
+  "decisions": [
+    {
+      "fork": "Where does the MaturitySummaryCard UI belong — hand-rolled in the MFE, or consumed from the design system?",
+      "choice": "Consume eq-one-design-system SummaryCard; do not hand-roll.",
+      "rationale": "dna-precheck found an equivalent SummaryCard in eq-one-design-system; dedup-policy REUSE precedence forbids re-creating it in the child MFE.",
+      "confidence": 0.92
+    },
+    {
+      "fork": "Should the balance/holdings store be declared in eq-one-saye-mfe or reused from eq-one-shared?",
+      "choice": "REUSE eq-one-shared/src/stores/useBalanceStore.ts; child MFE imports it.",
+      "rationale": "Lesson L-014: balance/holdings stores live in eq-one-shared and child MFEs import them; declaring a sibling copy would duplicate code across MFEs.",
+      "confidence": 0.9
+    },
+    {
+      "fork": "Place the new feature in an existing MFE or stand up a new child MFE?",
+      "choice": "EXTEND the existing eq-one-saye-mfe; no new MFE.",
+      "rationale": "Saye maturity is squarely within the existing saye domain surface; standing up a new MFE would violate boundaries and inflate budget.",
+      "confidence": 0.88
+    }
+  ],
+  "artifacts": {
+    "reuse": [
+      "eq-one-design-system/src/components/SummaryCard",
+      "eq-one-shared/src/stores/useBalanceStore.ts"
+    ],
+    "extend": [
+      "eq-one-saye-mfe/src/features/index.ts"
+    ],
+    "create": [
+      "eq-one-saye-mfe/src/features/maturity-summary/MaturitySummary.tsx",
+      "eq-one-saye-mfe/src/features/maturity-summary/index.ts",
+      "eq-nexus-ui/src/routes/saye-maturity-summary.tsx"
+    ]
+  },
+  "files_touched": [],
+  "diff_summary": "read-only stage — no diff produced; @architect emits a design + ordered sub-task plan for the build agents.",
+  "self_eval": {
+    "passed": true,
+    "confidence": 0.89,
+    "unmet": []
+  },
+  "open_items": [
+    "Confirm the eq-nexus-ui module-federation remote name 'sayeMaturitySummary' is free before registration (path-policy / federation-contract-drift check).",
+    "@contract to verify the FE balance type still matches the ExperienceAPI saye-maturity contract before @codegen wires the store."
+  ],
+  "budget": {
+    "tool_calls_used": 11,
+    "remaining": 49
+  },
+  "next": "@codegen: create the maturity-summary feature shell in eq-one-saye-mfe consuming the design-system SummaryCard and the shared useBalanceStore, then defer the eq-nexus-ui remote+route registration to @mfe; run dna-precheck first and self-evaluate before handing off to @reviewer."
+}

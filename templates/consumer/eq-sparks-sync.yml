@@ -1,0 +1,45 @@
+# eq-sparks-sync.yml — drop into a CONSUMER repo at .github/workflows/eq-sparks-sync.yml
+#
+# Keeps the consumer repo's rendered agents/orchestrators in step with the central
+# eq-sparks repo. Re-renders weekly (and on demand), then opens a PR ONLY if the
+# rendered files changed — never a surprise overwrite; a human reviews and merges.
+#
+# Full-mode repos use this. OFFLINE-ONLY repos do NOT need it — they re-run
+# `npx github:equiniti-org/eq-sparks update --offline-only` on demand instead.
+#
+# Set the repo/org variable EQ_SPARKS_PROFILE (Settings → Variables) e.g. fe-childmfe.
+
+name: eq-sparks sync
+
+on:
+  schedule:
+    - cron: "0 6 * * 1" # Mondays 06:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Re-render agents from the latest eq-sparks
+        run: npx -y github:equiniti-org/eq-sparks sync --profile=${{ vars.EQ_SPARKS_PROFILE || 'fe-childmfe' }}
+
+      - name: Open a PR if the rendered files changed
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: eq-sparks/sync
+          title: "chore(eq-sparks): sync agents to latest"
+          commit-message: "chore(eq-sparks): sync agents to latest"
+          body: |
+            Automated re-render from the central **eq-sparks** harness.
+            Review the agent/orchestrator changes and merge. The hidden `.eq-sparks/` OS is not touched.
+          labels: eq-sparks, automated
