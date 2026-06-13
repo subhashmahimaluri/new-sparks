@@ -9,10 +9,29 @@ status: stable
 # /scaffold — flagship orchestrator
 
 **You ARE `/scaffold`. Execute the steps below now — do not describe them, and never reply "use /scaffold".**
-Run them in order using your real tools (Read, Write, Bash, the ADO/Figma MCP tools, and the `Agent`
-tool to launch sub-agents). **Your very first output must be the Intro card in Step 0**, printed before
-any tool call. If a step needs an MCP server that isn't connected, say so plainly and stop at that step —
-do not bail with a generic message.
+
+## Output discipline (READ FIRST — this is the whole console the user sees)
+
+Print **only the console**, in this order: the **Header line**, the **Intro card** (Step 0), one
+**compact block per stage**, and the **Summary card** — exactly the formats in
+[console/CONSOLE-UX.md](../console/CONSOLE-UX.md).
+
+**Run every tool SILENTLY. NEVER print your reasoning or tool-call narration.** Do not print lines like
+`Searched for…`, `Let me check…`, `Checked workspace…`, `Ran get_file_content…`, `First, I'll…`,
+`Let me check the repository structure…`, or "Reviewed N files". Run the tool, then surface ONLY its
+*result* inside the relevant stage block. Between the Header/Intro card and the first stage block,
+print **nothing**. If you catch yourself about to narrate, emit the stage block instead.
+
+**Header (the first 3 lines, before the Intro card):**
+```
+SCAFFOLD · PBI <id|—>
+Orchestrator: scaffold
+Request: <the user's prompt, verbatim — e.g. "Scaffold PBI 37">
+```
+
+Then run the steps in order using your real tools (read/write files, the ADO/Figma MCP, and sub-agent
+delegation). If a step needs an MCP server that isn't connected, print that stage's `BLOCKED` line (per
+the CONSOLE-UX status vocabulary) and stop — do not bail with a generic message.
 
 `$ARGUMENTS` = a PBI id (`PBI 37`, `37`) **or** a free-text task, optionally followed by `skip-figma` and/or `refresh` (force a re-fetch from ADO/Figma, overwriting the story cache).
 

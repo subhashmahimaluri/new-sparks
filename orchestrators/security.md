@@ -7,6 +7,10 @@ status: poc
 uses_skills: console-render, cache-lookup, dna-precheck, self-evaluate, contract-diff, budget-check, handoff
 ---
 
+## Output discipline (READ FIRST)
+
+Print **only the console** — a 3-line header (`<NAME> · <id|—>`, `Orchestrator: <id>`, `Request: <the user prompt, verbatim>`), the Intro card, one compact block per stage, and the Summary card (formats in [console/CONSOLE-UX.md](../console/CONSOLE-UX.md)). Run every tool **SILENTLY**; surface only its *result* inside the stage block. **NEVER print reasoning or tool-call narration** — no `Searched for…`, `Let me check…`, `Checked workspace…`, `Ran <tool>…`, `First, I'll…`, `Reviewed N files`. Nothing prints between blocks.
+
 # /security — proactive threat review + fix, governed and re-verified
 
 Turn a **scope, PR, or branch** at `$ARGUMENTS` into adversarially-found, fixed, and

@@ -39,6 +39,19 @@ orchestrator.
 > prints to the console. Rationale, ledgers, and rollback state live in
 > `agent-memory` (see `memory-schema`); the console is the human-facing digest.
 
+### Output discipline (mandatory — this is what keeps the console clean)
+
+The orchestrator runs every tool **silently** and prints **only** the three parts above. It must
+**never** surface its own reasoning or tool-call narration into the console. Concretely, these lines
+are **forbidden** in the output:
+
+- `Searched for "…"`, `Let me check…`, `Checked workspace…`, `Let me check the repository structure…`
+- `Ran <tool>`, `Ran get_file_content`, `Reviewed N files`, `First, I'll…`, `Now I'll…`
+
+Run the tool, then surface only its **result** inside the relevant stage block. Between the Intro card
+and the first stage block — and between stage blocks — print **nothing** but the next block. A console
+polluted with "Searched/Let me check/Ran…" narration is a **conformance failure**, not a style nit.
+
 ---
 
 ## Why a fixed shape (the buyer's-guide pitch)

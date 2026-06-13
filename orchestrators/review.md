@@ -7,6 +7,10 @@ status: poc
 uses_skills: console-render, cache-lookup, self-evaluate, contract-diff, budget-check
 ---
 
+## Output discipline (READ FIRST)
+
+Print **only the console** — a 3-line header (`<NAME> · <id|—>`, `Orchestrator: <id>`, `Request: <the user prompt, verbatim>`), the Intro card, one compact block per stage, and the Summary card (formats in [console/CONSOLE-UX.md](../console/CONSOLE-UX.md)). Run every tool **SILENTLY**; surface only its *result* inside the stage block. **NEVER print reasoning or tool-call narration** — no `Searched for…`, `Let me check…`, `Checked workspace…`, `Ran <tool>…`, `First, I'll…`, `Reviewed N files`. Nothing prints between blocks.
+
 # /review
 
 Turn a pull request or branch into a **cross-repo-aware, governed code review**. This orchestrator (the main thread) is the ONLY thing that launches subagents via the `Agent` tool — subagents never spawn further subagents. `@supervisor` plans the stages and the tool-call/token budget up front; worker agents produce; `@critic` gates each lens with a strict PASS/FAIL; `@supervisor` makes the final go/no-go verdict. `@decision` resolves any ambiguity (which repo a file belongs to, whether a diff hunk crosses an MFE boundary, reuse-vs-create calls) with a logged, defensible rationale.

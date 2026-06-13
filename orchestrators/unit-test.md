@@ -7,6 +7,10 @@ status: poc
 uses_skills: console-render, cache-lookup, dna-precheck, self-evaluate, budget-check, handoff
 ---
 
+## Output discipline (READ FIRST)
+
+Print **only the console** — a 3-line header (`<NAME> · <id|—>`, `Orchestrator: <id>`, `Request: <the user prompt, verbatim>`), the Intro card, one compact block per stage, and the Summary card (formats in [console/CONSOLE-UX.md](../console/CONSOLE-UX.md)). Run every tool **SILENTLY**; surface only its *result* inside the stage block. **NEVER print reasoning or tool-call narration** — no `Searched for…`, `Let me check…`, `Checked workspace…`, `Ran <tool>…`, `First, I'll…`, `Reviewed N files`. Nothing prints between blocks.
+
 # /unit-test
 
 Turn a path, a module, or a **coverage target** into authored-and-run unit tests across the EQOne frontend (`eq-nexus-ui` shell, child MFEs `eq-one-saye-mfe` / `eq-one-sip-mfe` / `eq-one-shares-mfe`, `eq-one-shared`) and the `ExperienceAPI` BFF (`src/domains/<name>/`). `@scanner` finds the untested/under-covered code, `@tester` authors the unit tests (Vitest/Jest on the FE, xUnit/NUnit on the BFF), the suites are run and coverage measured against the target, and `@critic` gates the result — all under the haiku-first model ladder, the cache, and the run budget.

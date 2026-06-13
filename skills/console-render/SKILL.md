@@ -20,6 +20,8 @@ Pure formatting primitive that renders the **standardised three-part orchestrato
 
 This skill is the single source of console shape so the whole platform reads the same. It **does not think** — it has no LLM step, makes no decisions, and never modifies repo code. It receives already-computed data from the orchestrator and lays it out exactly as `console/CONSOLE-UX.md` specifies. If a number is wrong, the bug is upstream in the orchestrator, not here.
 
+**Output discipline (the contract this skill enforces).** These three parts are the **only** thing that reaches the user. The orchestrator must run its tools **silently** and feed this skill the computed data — it must **never** print its own reasoning or tool-call narration (`Searched for…`, `Let me check…`, `Checked workspace…`, `Ran <tool>…`, `First, I'll…`, `Reviewed N files`). A console interleaved with that narration is a conformance failure (see `console/CONSOLE-UX.md` → "Output discipline").
+
 ## Inputs
 
 A single structured `view` object supplied by the calling orchestrator (the main thread), one of three render modes:
