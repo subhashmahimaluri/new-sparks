@@ -1,9 +1,10 @@
 ---
 user-invocable: false
-tools: ["edit", "search/codebase", "search/usages"]
+disable-model-invocation: true
 name: decision
 description: Governance arbiter that resolves run forks (vague PBI, missing contract, unclear code placement, reuse-vs-create) with a defensible, logged decision and confidence score.
-model: opus
+model: "Claude Opus 4.5"
+tools: ["read","search"]
 loop: single-shot
 version: 1.0.0
 status: stable

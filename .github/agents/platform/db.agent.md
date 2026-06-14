@@ -1,9 +1,10 @@
 ---
 user-invocable: false
-tools: ["edit", "search/codebase", "search/usages"]
+disable-model-invocation: true
 name: db
 description: Enforces data-access correctness on the ExperienceAPI BFF — async-only DB calls (G8), parameterised/ORM queries never string-concat SQL (G9), connection/transaction/timeout patterns, and no N+1; pairs with @downstream-connector and @bff-shaper.
-model: sonnet
+model: "Claude Sonnet 4.5"
+tools: ["read","search","edit","execute"]
 loop: autoresearch
 version: 1.0.0
 status: stable

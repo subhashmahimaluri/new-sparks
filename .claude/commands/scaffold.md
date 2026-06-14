@@ -75,6 +75,14 @@ stage, NOT only at Summary** — so an interruption at any stage leaves complete
 If the ledger shows this PBI was already scaffolded, say so and offer `/resume` instead of redoing it
 (dedup-policy).
 
+**Stage 0 health check (fail fast — before any fetch).** Verify the run can actually proceed and, if not,
+print ONE `BLOCKED` block listing every missing item (don't fail mid-run). Check:
+- **Sibling repos present** — the profile's target repos resolve on disk (`../eq-one-saye-mfe`, `../eq-one-shared`, `../eq-one-design-system`, `../ExperienceAPI`, …). If not → `Stage 0 — BLOCKED: repos not found as siblings — open eq-one.code-workspace or clone the estate as siblings (MANUAL-STEPS D3)`.
+- **ADO MCP configured** — an `ado` server exists AND its URL is **not** the literal placeholder `<set in MANUAL-STEPS D1 …>`. If it still starts with `<set` → `Stage 0 — BLOCKED: ADO MCP not configured — set the ado URL in .vscode/mcp.json and sign in (MANUAL-STEPS D1)`.
+- **Config loaded** — `.eq-sparks.yml` parsed (profile, budget). Missing/invalid → fall back to defaults and note it in the Stage 0 block.
+
+Render the result as the Stage 0 block (`Health: ✅ initialized` or the `BLOCKED` line). Only when health passes does Step 1 run.
+
 ## Step 1 — Resolve the PBI into the **story cache**
 
 The story cache is the single source of PBI truth for the run. Path: **`.eq-sparks/cache/story-cache/<pbi>.json`**.
@@ -163,6 +171,14 @@ Step 4** with the required changes (escalate one tier after two FAILs, per
 ║  Confidence            <pct>      Ready for: developer review     ║
 ╚══════════════════════════════════════════════════════════════════╝
 ```
+
+Then **write the run artifacts** to `.eq-sparks/artifacts/` (the files the Summary card names) with your
+file tools — they are the on-disk deliverables a reviewer opens after the run:
+- **`SCAFFOLD-SUMMARY-PBI-<id>.md`** — executive summary: PBI title, AC mapping (m/n), the reuse/extend/create
+  decisions, files created/extended and where they landed, `@critic` verdict + `@supervisor` GO/NO-GO, and the
+  budget/cost line.
+- **`IMPLEMENTATION-CHECKLIST.md`** — AC-by-AC tracking: each acceptance criterion → the artifact/file that
+  satisfies it → done/pending.
 
 Append the final Summary-stage line to the ledger and mark the run complete. (The ledger has already
 been checkpointed after every prior stage per Step 0 — this is the last append, not the first write.)

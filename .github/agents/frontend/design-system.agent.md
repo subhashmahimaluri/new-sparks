@@ -1,9 +1,10 @@
 ---
 user-invocable: false
-tools: ["edit", "search/codebase", "search/usages"]
+disable-model-invocation: true
 name: design-system
 description: Forces UI to consume eq-one-design-system components and BLOCKS hand-rolled equivalents of components the design system already provides.
-model: sonnet
+model: "Claude Sonnet 4.5"
+tools: ["read","search","edit"]
 loop: autoresearch
 version: 1.0.0
 status: stable

@@ -1,9 +1,10 @@
 ---
 user-invocable: false
-tools: ["edit", "search/codebase", "search/usages"]
+disable-model-invocation: true
 name: docs
 description: Updates READMEs, JSDoc/XML-doc, and changelogs to exactly match a merged diff — no new prose, no judgment calls.
-model: haiku
+model: "Claude Haiku 4.5"
+tools: ["read","search","edit"]
 loop: autoresearch
 version: 1.0.0
 status: stable

@@ -126,8 +126,9 @@ function syncHarness(dest, filter, profileName) {
     cpSync(join(PKG_ROOT, 'profiles', profileName), join(osDir, 'profiles', profileName), { recursive: true });
   }
 
-  // Runtime dirs — preserved across re-syncs (live run state).
-  for (const d of ['cache', 'agent-memory', 'telemetry']) mkdirSync(join(osDir, d), { recursive: true });
+  // Runtime dirs — preserved across re-syncs (live run state). `artifacts/` holds the run summaries
+  // the orchestrators write (SCAFFOLD-SUMMARY-*.md, IMPLEMENTATION-CHECKLIST.md) per CONSOLE-UX.
+  for (const d of ['cache', 'agent-memory', 'telemetry', 'artifacts']) mkdirSync(join(osDir, d), { recursive: true });
 }
 
 function mcpJson() {
@@ -175,6 +176,13 @@ function init(args) {
 
   // .vscode/mcp.json — one shared config (both modes).
   writeIfAbsent(join(dest, '.vscode/mcp.json'), mcpJson(), '.vscode/mcp.json (ADO + Figma — set URLs per MANUAL-STEPS D1)');
+
+  // Multi-root workspace — open this to work across the whole estate with the one shared mcp.json.
+  if (existsSync(join(PKG_ROOT, 'templates/consumer/eq-one.code-workspace'))) {
+    writeIfAbsent(join(dest, 'eq-one.code-workspace'),
+      readFileSync(join(PKG_ROOT, 'templates/consumer/eq-one.code-workspace'), 'utf8'),
+      'eq-one.code-workspace (multi-root — clone repos as siblings, then open this; MANUAL-STEPS D3)');
+  }
 
   if (!offline) {
     writeIfAbsent(join(dest, '.eq-sparks.yml'),

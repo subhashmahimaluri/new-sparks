@@ -1,9 +1,10 @@
 ---
 user-invocable: false
-tools: ["edit", "search/codebase", "search/usages"]
+disable-model-invocation: true
 name: supervisor
 description: Governance owner of the run — plans stages, allocates tool-call/token budget, enforces guardrails, and gives the go/no-go verdict between stages.
-model: opus
+model: "Claude Opus 4.5"
+tools: ["read","search","todo"]
 loop: single-shot
 version: 1.0.0
 status: active

@@ -1,13 +1,14 @@
 ---
 user-invocable: false
-tools: ["edit", "search/codebase", "search/usages"]
+disable-model-invocation: true
 name: contract-publisher
 description: Publishes the per-domain ExperienceAPI OpenAPI/Swagger contract that the FE @contract agent consumes, and fails on drift.
-model: sonnet
+model: "Claude Sonnet 4.5"
 version: 1.0.0
 status: stable
 layer: bff
 category: bff
+tools: ["read","search","edit","execute"]
 loop: autoresearch
 uses_skills: dna-precheck, contract-diff, cache-lookup, self-evaluate
 constraints:

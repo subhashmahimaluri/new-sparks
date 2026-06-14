@@ -145,45 +145,60 @@ function injectFm(content, keys) {
   return `---\n${lines}\n---\n\n${content}`;
 }
 
-// Strip the Claude `tools:` frontmatter line. Copilot custom agents default to ALL tools when `tools`
-// is unset; emitting Claude tool names (Read/Grep/Bash/Agent/TodoWrite) makes Copilot map NONE, so the
-// agent stalls asking the user to "enable tools." Least-privilege via Copilot tool-set names is a follow-up.
-const stripToolsLine = (content) => content.replace(/^tools:.*\n/m, '');
-
-// Rewrite Claude-only phrasing for Copilot: there is no "Agent tool" — sub-agent delegation is the `agents` field.
+// Rewrite Claude-only phrasing for Copilot: delegation is the `agent` tool, not a literal "Agent tool".
 const neutraliseClaudeisms = (body) => body
-  .replace(/the `Agent` tool to launch sub-?agents/gi, 'your `agents` delegation to run sub-agents')
-  .replace(/via the `Agent` tool/gi, 'by delegating via your `agents` list')
-  .replace(/`Agent` tool/g, 'sub-agent delegation');
+  .replace(/the `Agent` tool to launch sub-?agents/gi, 'the `agent` tool (sub-agent delegation)')
+  .replace(/via the `Agent` tool/gi, 'via the `agent` tool')
+  .replace(/`Agent` tool/g, '`agent` tool');
 
-// VS Code Copilot custom-agent tool identifiers are NAMESPACED (e.g. `edit`, `search/codebase`,
-// `web/fetch`, `<mcp-server>/*`) — NOT the Claude names (Read/Grep/Bash/Agent). Wrong names => the agent
-// gets no tools and stalls asking the user to "enable file editing tools." These are the documented ids.
-// Ref: https://code.visualstudio.com/docs/agent-customization/custom-agents
-const COPILOT_ORCH_TOOLS = '["edit", "search/codebase", "search/usages", "web/fetch", "ado/*", "figma/*"]';
-const COPILOT_SUBAGENT_TOOLS = '["edit", "search/codebase", "search/usages"]';
+// Copilot custom-agent `tools:` uses CANONICAL ALIASES — not "search/codebase" (read as an MCP-server
+// ref → silently ignored) and not raw Claude names in VS Code. Verified against
+// https://docs.github.com/en/copilot/reference/custom-agents-configuration :
+//   execute (shell/Bash) · read · edit (Edit/Write) · search (Grep/Glob) · agent (delegation) · web · todo
+// MCP server tools are `server/*`. Unknown names are silently ignored, so names must be exact.
+const CLAUDE_TO_COPILOT_TOOL = {
+  Read: 'read', NotebookRead: 'read',
+  Edit: 'edit', Write: 'edit', MultiEdit: 'edit', NotebookEdit: 'edit',
+  Bash: 'execute',
+  Grep: 'search', Glob: 'search',
+  WebFetch: 'web', WebSearch: 'web',
+  TodoWrite: 'todo', Agent: 'agent', Task: 'agent',
+};
+// Model tiers -> exact Copilot display names (verified against the supported-models reference).
+const CLAUDE_MODEL_TO_COPILOT = { haiku: 'Claude Haiku 4.5', sonnet: 'Claude Sonnet 4.5', opus: 'Claude Opus 4.5' };
 
-// Orchestrator → a top-level, user-invocable custom agent that may delegate to any sub-agent.
+function copilotToolsFrom(csv, { orchestrator = false } = {}) {
+  const set = new Set(['read', 'search']); // floor every agent needs
+  for (const t of (csv || '').split(',').map((s) => s.trim()).filter(Boolean)) {
+    const m = CLAUDE_TO_COPILOT_TOOL[t];
+    if (m) set.add(m);
+  }
+  if (orchestrator) { set.add('edit'); set.add('execute'); set.add('agent'); set.add('ado/*'); set.add('figma/*'); }
+  return JSON.stringify([...set]);
+}
+
+// Orchestrator -> a top-level, user-invocable custom agent that may delegate to any sub-agent (`agent` tool).
 function toCopilotOrchestrator(content, id, src) {
   const { fmMap, body } = parseFm(content);
   const fm = {
     name: `${id}-orchestrator`,
     description: fmMap['description'] || id,
-    tools: COPILOT_ORCH_TOOLS, // file editing + codebase search + fetch + the ADO/Figma MCP servers
-    agents: '["*"]', // may delegate to any sub-agent (Copilot's delegation mechanism)
-    'user-invocable': 'true', // appears in the Agents dropdown
+    tools: copilotToolsFrom(fmMap['allowed-tools'] || fmMap['tools'], { orchestrator: true }),
+    agents: '["*"]', // VS Code delegation allowlist (github.com ignores it harmlessly)
+    'user-invocable': 'true', // selectable in the Agents dropdown
   };
   if (fmMap['argument-hint']) fm['argument-hint'] = fmMap['argument-hint'];
   const head = '---\n' + Object.entries(fm).map(([k, v]) => `${k}: ${v}`).join('\n') + '\n---\n';
   return head + banner(src, 'Copilot') + '\n' + neutraliseClaudeisms(body);
 }
 
-// Sub-agent → a custom agent in a category subfolder, delegation-only (kept out of the dropdown).
+// Sub-agent -> a custom agent in a category subfolder; delegation-only (not user-selected, not model-invoked).
 function toCopilotSubagent(content, src) {
-  return withBanner(injectFm(stripToolsLine(content), {
-    'user-invocable': 'false',
-    tools: COPILOT_SUBAGENT_TOOLS, // Copilot-namespaced; replaces the stripped Claude tool names
-  }), src, 'Copilot');
+  const { fmMap } = parseFm(content);
+  let c = content.replace(/^tools:.*$/m, `tools: ${copilotToolsFrom(fmMap['tools'])}`); // Claude names -> Copilot aliases
+  const model = fmMap['model'] && CLAUDE_MODEL_TO_COPILOT[fmMap['model'].trim()];
+  if (model) c = c.replace(/^model:.*$/m, `model: "${model}"`); // tier -> exact Copilot display name
+  return withBanner(injectFm(c, { 'user-invocable': 'false', 'disable-model-invocation': 'true' }), src, 'Copilot');
 }
 
 // Guardrail / principle → a path-scoped instruction that auto-applies everywhere.

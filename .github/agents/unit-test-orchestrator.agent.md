@@ -1,7 +1,7 @@
 ---
 name: unit-test-orchestrator
 description: Author and run unit tests to a coverage target across the EQOne MFEs and the ExperienceAPI BFF — @scanner finds untested code, @tester authors tests (parallel per module), run + measure coverage, gated by @critic, under budget and behind the cache.
-tools: ["edit", "search/codebase", "search/usages", "web/fetch", "ado/*", "figma/*"]
+tools: ["read","search","execute","edit","agent","todo","ado/*","figma/*"]
 agents: ["*"]
 user-invocable: true
 argument-hint: "[path | module | coverage target]"
@@ -17,7 +17,7 @@ Print **only the console** — a 3-line header (`<NAME> · <id|—>`, `Orchestra
 
 Turn a path, a module, or a **coverage target** into authored-and-run unit tests across the EQOne frontend (`eq-nexus-ui` shell, child MFEs `eq-one-saye-mfe` / `eq-one-sip-mfe` / `eq-one-shares-mfe`, `eq-one-shared`) and the `ExperienceAPI` BFF (`src/domains/<name>/`). `@scanner` finds the untested/under-covered code, `@tester` authors the unit tests (Vitest/Jest on the FE, xUnit/NUnit on the BFF), the suites are run and coverage measured against the target, and `@critic` gates the result — all under the haiku-first model ladder, the cache, and the run budget.
 
-This command is the **main thread**: only it launches subagents by delegating via your `agents` list. **Subagents never launch further subagents.** The whole run is fronted and budgeted by `@supervisor`, gated by `@critic`, with `@decision` resolving any ambiguity (which behaviour a test should pin, whether a module is genuinely untestable as-is, what counts toward the coverage target) with a logged, defensible rationale.
+This command is the **main thread**: only it launches subagents via the `agent` tool. **Subagents never launch further subagents.** The whole run is fronted and budgeted by `@supervisor`, gated by `@critic`, with `@decision` resolving any ambiguity (which behaviour a test should pin, whether a module is genuinely untestable as-is, what counts toward the coverage target) with a logged, defensible rationale.
 
 Target under test: **$ARGUMENTS** — a file/dir path, a module/MFE/BFF-domain name, or a coverage target (e.g. `--coverage=85`). Any combination is accepted; a bare path with no number defaults the target to the project's configured coverage threshold.
 

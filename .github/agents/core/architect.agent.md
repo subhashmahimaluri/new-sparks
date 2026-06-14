@@ -1,9 +1,10 @@
 ---
 user-invocable: false
-tools: ["edit", "search/codebase", "search/usages"]
+disable-model-invocation: true
 name: architect
 description: Decides where code belongs (which MFE / eq-one-shared / design-system / BFF domain), the shape of the change, and the sequence of sub-tasks for non-trivial or cross-repo work — read-only, designs but never builds.
-model: opus
+model: "Claude Opus 4.5"
+tools: ["read","search"]
 loop: single-shot
 version: 1.0.0
 status: active

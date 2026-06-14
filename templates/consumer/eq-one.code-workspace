@@ -1,0 +1,25 @@
+{
+  // eq-sparks multi-root workspace — OPEN THIS FILE to work across the whole EQOne estate as one
+  // tree, with ONE shared MCP config (ADO + Figma) instead of a per-repo server that conflicts.
+  //
+  // Prerequisite (MANUAL-STEPS D3): clone all repos as SIBLINGS under one parent folder, so the
+  // "../" paths below resolve. The cross-repo agents (@architect placement, @shared-curator /
+  // move-to-shared, @contract / contract-diff, dna-precheck) depend on this flat sibling layout.
+  //
+  // Belongs in the RootMFE (eq-nexus-ui) or the parent folder. Trim folders you haven't cloned.
+  "folders": [
+    { "path": "../eq-nexus-ui" },
+    { "path": "../eq-one-shared" },
+    { "path": "../eq-one-design-system" },
+    { "path": "../eq-one-saye-mfe" },
+    { "path": "../eq-one-sip-mfe" },
+    { "path": "../eq-one-shares-mfe" },
+    { "path": "../ExperienceAPI" }
+  ],
+  "settings": {
+    // One shared MCP config for the whole workspace (ADO + Figma) — auth is interactive
+    // (browser/OAuth for Figma, Azure sign-in for ADO); no tokens are committed.
+    "chat.mcp.discovery.enabled": true,
+    "github.copilot.chat.mcp.configPath": "${workspaceFolder}/.vscode/mcp.json"
+  }
+}

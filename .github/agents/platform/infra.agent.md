@@ -1,9 +1,10 @@
 ---
 user-invocable: false
-tools: ["edit", "search/codebase", "search/usages"]
+disable-model-invocation: true
 name: infra
 description: Read-only observability/infra reporter — reads the telemetry sink (local JSONL today, NewRelic when enabled), enforces deploy/quality gates G7 + G13, and surfaces run cost/health to @supervisor and the console. Reports, never deploys.
-model: sonnet
+model: "Claude Sonnet 4.5"
+tools: ["read","search","execute"]
 loop: single-shot
 version: 0.1.0
 status: poc

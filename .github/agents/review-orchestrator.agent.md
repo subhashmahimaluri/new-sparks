@@ -1,7 +1,7 @@
 ---
 name: review-orchestrator
 description: Review orchestrator — fetch a PR/branch diff, run a governed 6-lens review (correctness, security, perf, a11y, contract, style), and gate with the governance trio.
-tools: ["edit", "search/codebase", "search/usages", "web/fetch", "ado/*", "figma/*"]
+tools: ["read","search","execute","edit","agent","todo","ado/*","figma/*"]
 agents: ["*"]
 user-invocable: true
 argument-hint: "[PR number | branch]"
@@ -15,7 +15,7 @@ Print **only the console** — a 3-line header (`<NAME> · <id|—>`, `Orchestra
 
 # /review
 
-Turn a pull request or branch into a **cross-repo-aware, governed code review**. This orchestrator (the main thread) is the ONLY thing that launches subagents by delegating via your `agents` list — subagents never spawn further subagents. `@supervisor` plans the stages and the tool-call/token budget up front; worker agents produce; `@critic` gates each lens with a strict PASS/FAIL; `@supervisor` makes the final go/no-go verdict. `@decision` resolves any ambiguity (which repo a file belongs to, whether a diff hunk crosses an MFE boundary, reuse-vs-create calls) with a logged, defensible rationale.
+Turn a pull request or branch into a **cross-repo-aware, governed code review**. This orchestrator (the main thread) is the ONLY thing that launches subagents via the `agent` tool — subagents never spawn further subagents. `@supervisor` plans the stages and the tool-call/token budget up front; worker agents produce; `@critic` gates each lens with a strict PASS/FAIL; `@supervisor` makes the final go/no-go verdict. `@decision` resolves any ambiguity (which repo a file belongs to, whether a diff hunk crosses an MFE boundary, reuse-vs-create calls) with a logged, defensible rationale.
 
 Target under review: **$ARGUMENTS**
 

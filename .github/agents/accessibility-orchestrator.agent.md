@@ -1,7 +1,7 @@
 ---
 name: accessibility-orchestrator
 description: Accessibility orchestrator — audit an EQOne screen/route/PR against WCAG 2.2 AA, fix the violations in the design system / source, re-verify, and gate with the governance trio under budget.
-tools: ["edit", "search/codebase", "search/usages", "web/fetch", "ado/*", "figma/*"]
+tools: ["read","search","execute","edit","agent","todo","ado/*","figma/*"]
 agents: ["*"]
 user-invocable: true
 argument-hint: "[screen | route | PR number] [skip-figma]"
@@ -24,7 +24,7 @@ read-only lens** among six), this command goes the full distance: `@a11y` audits
 
 Target under audit: **$ARGUMENTS**
 
-This command is the **main thread**: only it launches subagents by delegating via your `agents` list.
+This command is the **main thread**: only it launches subagents via the `agent` tool.
 **Subagents never launch further subagents.** Every stage is planned, budgeted, and gated by the
 governance trio:
 

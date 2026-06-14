@@ -1,13 +1,14 @@
 ---
 user-invocable: false
-tools: ["edit", "search/codebase", "search/usages"]
+disable-model-invocation: true
 name: perf
 description: Read-only performance reviewer for bundle size, re-render hotspots, N+1 queries, and downstream call fan-out across MFEs and BFF domains.
-model: sonnet
+model: "Claude Sonnet 4.5"
 version: 1.0.0
 status: stable
 layer: core
 category: core
+tools: ["read","search","execute"]
 loop: single-shot
 uses_skills: cache-lookup
 constraints:

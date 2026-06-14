@@ -1,9 +1,10 @@
 ---
 user-invocable: false
-tools: ["edit", "search/codebase", "search/usages"]
+disable-model-invocation: true
 name: tester
 description: Writes and runs unit tests for FE/BFF changes and reads results — mechanical, well-scoped, Haiku-first.
-model: haiku
+model: "Claude Haiku 4.5"
+tools: ["read","search","edit","execute"]
 loop: autoresearch
 version: 1.0.0
 status: stable

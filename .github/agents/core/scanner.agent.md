@@ -1,9 +1,10 @@
 ---
 user-invocable: false
-tools: ["edit", "search/codebase", "search/usages"]
+disable-model-invocation: true
 name: scanner
 description: Mechanical scans — dependency diffs, dead-code detection, secret-pattern regex, lint output — feeding @shared-curator and @security.
-model: haiku
+model: "Claude Haiku 4.5"
+tools: ["read","search","execute"]
 loop: single-shot
 version: 0.1.0
 status: poc

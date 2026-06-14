@@ -1,9 +1,10 @@
 ---
 user-invocable: false
-tools: ["edit", "search/codebase", "search/usages"]
+disable-model-invocation: true
 name: contract
 description: Keeps FE TypeScript types and API clients aligned to the ExperienceAPI BFF OpenAPI contract; FAILS the stage on any drift.
-model: sonnet
+model: "Claude Sonnet 4.5"
+tools: ["read","search","edit","execute"]
 loop: autoresearch
 version: 1.0.0
 status: stable

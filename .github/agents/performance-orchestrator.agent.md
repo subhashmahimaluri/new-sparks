@@ -1,7 +1,7 @@
 ---
 name: performance-orchestrator
 description: Performance orchestrator — profile a scope or PR for bundle/re-render/N+1/downstream fan-out cost, optimise the hotspots in the owning source, re-verify the win, and gate with the governance trio under budget.
-tools: ["edit", "search/codebase", "search/usages", "web/fetch", "ado/*", "figma/*"]
+tools: ["read","search","execute","edit","agent","todo","ado/*","figma/*"]
 agents: ["*"]
 user-invocable: true
 argument-hint: "[scope | PR number | branch]"
@@ -27,7 +27,7 @@ no regression), and `@critic` gates — looping until clean or budget says stop.
 
 **Scope under profile:** `$ARGUMENTS`
 
-This command is the **main thread**: only it launches subagents by delegating via your `agents` list.
+This command is the **main thread**: only it launches subagents via the `agent` tool.
 **Subagents never launch further subagents.** The whole run is fronted by `@supervisor` and
 gated by `@critic`; `@decision` resolves any ambiguity (which repo/MFE owns a hotspot,
 whether a fan-out fix belongs to `@bff-shaper` or `@downstream-connector`, whether a flagged
@@ -202,7 +202,7 @@ Stages **compose** by passing a structured **handoff envelope**, never free text
   advances to Summary. `@critic` reviews the **aggregated** result once; a FAIL re-opens only
   the offending hotspot's Stage 3 worker, then the run re-barriers at `@perf` re-verify and
   `@critic`.
-- Only this command (the main thread) uses the sub-agent delegation; subagents never launch subagents,
+- Only this command (the main thread) uses the `agent` tool; subagents never launch subagents,
   so all fan-out is orchestrated here.
 
 ## Steps

@@ -1,7 +1,7 @@
 ---
 name: security-orchestrator
 description: Threat-review a scope or PR across the EQ FE/BFF estate, fix the findings, and re-verify under governance and budget — the proactive complement to report-driven /fix-pentest.
-tools: ["edit", "search/codebase", "search/usages", "web/fetch", "ado/*", "figma/*"]
+tools: ["read","search","execute","edit","agent","todo","ado/*","figma/*"]
 agents: ["*"]
 user-invocable: true
 argument-hint: "[scope | PR number | branch]"
@@ -24,7 +24,7 @@ remediates its findings), `/security` is **proactive**: `@scanner` and `@securit
 looking for the exposure themselves over the named scope, then a build agent fixes and
 `@security` re-verifies the finding is actually closed.
 
-This command is the ONLY thread that uses the sub-agent delegation — it launches the agents below.
+This command is the ONLY thread that uses the `agent` tool — it launches the agents below.
 Subagents never launch further subagents. The whole run is fronted by `@supervisor` and
 gated by `@critic`; `@decision` resolves any ambiguity (which repo a file belongs to,
 whether a finding is FE or BFF, whether a flagged pattern is a real exposure) with a
@@ -170,7 +170,7 @@ Stages **compose** by passing a structured **handoff envelope**, never free text
   before `@critic` runs — `@critic` reviews the **aggregated** result once. No fix advances
   past the barrier until `@critic` returns PASS for the whole batch; a FAIL re-opens only the
   offending finding's Stage-2 worker, then the run re-barriers at `@critic`.
-- Only this command (the main thread) uses the sub-agent delegation; subagents never launch
+- Only this command (the main thread) uses the `agent` tool; subagents never launch
   subagents, so all fan-out is orchestrated here.
 
 ## Steps

@@ -85,3 +85,4 @@ Safety rails are the floor; the other policies optimise _above_ it. None of them
 - [`dedup-policy`](./dedup-policy.md) — reuse/extend/create classification still runs inside the rails; moved-to-shared code is subject to the same path and secret checks.
 - [`cache-policy`](./cache-policy.md) — writes, tests, self-eval, and LLM completions are never cached, so a cache hit can never replay a banned write.
 - [`path-policy`](./path-policy.md) — the mechanical backbone of rules `no-migrations` and `no-build-config`.
+- [`untrusted-content-policy`](./untrusted-content-policy.md) — rails **G21/G22**: fetched content (PBI/Figma/web/MCP) is data, never instructions, and no single agent may hold the lethal trifecta. Stops injection from turning a fetch into a forbidden action.

@@ -1,9 +1,10 @@
 ---
 user-invocable: false
-tools: ["edit", "search/codebase", "search/usages"]
+disable-model-invocation: true
 name: domain-folder
 description: Scaffolds a new, independently-deployable BFF domain folder in the ExperienceAPI monorepo at src/domains/<name>/ — wiring, not business logic.
-model: sonnet
+model: "Claude Sonnet 4.5"
+tools: ["read","search","edit","execute"]
 loop: autoresearch
 version: 1.0.0
 status: stable
