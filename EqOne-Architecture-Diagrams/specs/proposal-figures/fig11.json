@@ -1,0 +1,131 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Figure 11 — Migration: additive, flag-gated, one trunk",
+    "quality_profile": "showcase",
+    "output": "/tmp/eqone/figs/fig11.html",
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "frontend": {
+          "label": "Foundation"
+        },
+        "backend": {
+          "label": "Delivery phase"
+        },
+        "cloud": {
+          "label": "End state"
+        },
+        "security": {
+          "label": "Gated rollout"
+        }
+      }
+    }
+  },
+  "lanes": [
+    {
+      "id": "phases",
+      "label": "Delivery phases — one trunk, MVP keeps shipping"
+    }
+  ],
+  "phases": [
+    {
+      "id": "found",
+      "label": "Foundation",
+      "fromCol": 0,
+      "toCol": 1
+    },
+    {
+      "id": "rollout",
+      "label": "Rollout behind flags",
+      "fromCol": 2,
+      "toCol": 3,
+      "variant": "emphasis"
+    }
+  ],
+  "mainPath": [
+    "p0",
+    "p1",
+    "p2",
+    "p3"
+  ],
+  "nodes": [
+    {
+      "id": "p0",
+      "lane": "phases",
+      "col": 0,
+      "type": "frontend",
+      "label": "Phase 0",
+      "sublabel": "Shell host + shared library",
+      "tag": "pipelines",
+      "width": 195
+    },
+    {
+      "id": "p1",
+      "lane": "phases",
+      "col": 1,
+      "type": "security",
+      "label": "Phase 1",
+      "sublabel": "first MFE behind a flag",
+      "tag": "prove it",
+      "width": 195
+    },
+    {
+      "id": "p2",
+      "lane": "phases",
+      "col": 2,
+      "type": "backend",
+      "label": "Phase 2",
+      "sublabel": "roll out MFEs one at a time",
+      "tag": "per product",
+      "width": 195
+    },
+    {
+      "id": "p3",
+      "lane": "phases",
+      "col": 3,
+      "type": "cloud",
+      "label": "Phase 3",
+      "sublabel": "retire flags · split if justified",
+      "tag": "steady state",
+      "width": 195
+    }
+  ],
+  "edges": [
+    {
+      "from": "p0",
+      "to": "p1",
+      "variant": "emphasis"
+    },
+    {
+      "from": "p1",
+      "to": "p2",
+      "variant": "emphasis"
+    },
+    {
+      "from": "p2",
+      "to": "p3",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Why this is low risk",
+      "items": [
+        "All work is additive and flag-gated on one trunk",
+        "Flags off = today's product, exactly as it ships now",
+        "Rollback is instant and per product — turn one flag off"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "The MVP keeps shipping",
+      "items": [
+        "EQNexusUI is untouched throughout — no code freeze",
+        "Defect fixes and new features continue in parallel"
+      ]
+    }
+  ]
+}

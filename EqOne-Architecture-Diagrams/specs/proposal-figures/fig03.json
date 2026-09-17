@@ -1,0 +1,278 @@
+{
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Figure 3 — One Experience API per MFE, common concerns shared once",
+    "quality_profile": "showcase",
+    "output": "/tmp/eqone/figs/fig03.html",
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "frontend": {
+          "label": "Front end"
+        },
+        "backend": {
+          "label": "Service / API"
+        },
+        "cloud": {
+          "label": "AWS service"
+        },
+        "database": {
+          "label": "Data store"
+        },
+        "security": {
+          "label": "Identity / security"
+        },
+        "external": {
+          "label": "Backend system"
+        },
+        "messagebus": {
+          "label": "Messaging"
+        }
+      }
+    }
+  },
+  "components": [
+    {
+      "id": "shell",
+      "type": "frontend",
+      "label": "Shell (Core)",
+      "pos": [
+        40,
+        40
+      ],
+      "size": [
+        210,
+        60
+      ]
+    },
+    {
+      "id": "shellapi",
+      "type": "backend",
+      "label": "Equiniti.Nexus.Experience.Api",
+      "sublabel": "existing",
+      "pos": [
+        330,
+        40
+      ],
+      "size": [
+        290,
+        60
+      ]
+    },
+    {
+      "id": "sr",
+      "type": "frontend",
+      "label": "Shares Reg",
+      "pos": [
+        40,
+        140
+      ],
+      "size": [
+        210,
+        60
+      ]
+    },
+    {
+      "id": "srapi",
+      "type": "backend",
+      "label": "Shares Reg Experience API",
+      "sublabel": "new",
+      "pos": [
+        330,
+        140
+      ],
+      "size": [
+        290,
+        60
+      ]
+    },
+    {
+      "id": "ae",
+      "type": "frontend",
+      "label": "All-Employee",
+      "pos": [
+        40,
+        240
+      ],
+      "size": [
+        210,
+        60
+      ]
+    },
+    {
+      "id": "aeapi",
+      "type": "backend",
+      "label": "All-Employee Experience API",
+      "sublabel": "new",
+      "pos": [
+        330,
+        240
+      ],
+      "size": [
+        290,
+        60
+      ]
+    },
+    {
+      "id": "ds",
+      "type": "frontend",
+      "label": "Discretionary",
+      "pos": [
+        40,
+        340
+      ],
+      "size": [
+        210,
+        60
+      ]
+    },
+    {
+      "id": "dsapi",
+      "type": "backend",
+      "label": "Discretionary Experience API",
+      "sublabel": "new",
+      "pos": [
+        330,
+        340
+      ],
+      "size": [
+        290,
+        60
+      ]
+    },
+    {
+      "id": "ef",
+      "type": "frontend",
+      "label": "Shared EFSL *",
+      "pos": [
+        40,
+        440
+      ],
+      "size": [
+        210,
+        60
+      ]
+    },
+    {
+      "id": "efapi",
+      "type": "backend",
+      "label": "Shared EFSL Experience API *",
+      "sublabel": "new *",
+      "pos": [
+        330,
+        440
+      ],
+      "size": [
+        290,
+        60
+      ]
+    },
+    {
+      "id": "lib",
+      "type": "backend",
+      "label": "Shared library",
+      "sublabel": "session validation · GIP service token · resilience · models",
+      "pos": [
+        710,
+        190
+      ],
+      "size": [
+        240,
+        160
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": "shell",
+      "to": "shellapi",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "shellapi",
+      "to": "lib",
+      "variant": "dashed",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "sr",
+      "to": "srapi",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "srapi",
+      "to": "lib",
+      "variant": "dashed",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "ae",
+      "to": "aeapi",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "aeapi",
+      "to": "lib",
+      "variant": "dashed",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "ds",
+      "to": "dsapi",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "dsapi",
+      "to": "lib",
+      "variant": "dashed",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "ef",
+      "to": "efapi",
+      "variant": "dashed",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "efapi",
+      "to": "lib",
+      "variant": "dashed",
+      "fromSide": "right",
+      "toSide": "left"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Pairing rule",
+      "items": [
+        "Every MFE talks to exactly one Experience API",
+        "The Shell keeps the existing Equiniti.Nexus.Experience.Api",
+        "Four new APIs, one per category MFE"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Shared library (Azure Artifacts)",
+      "items": [
+        "Session validation and GIP service-token exchange",
+        "Resilience policies and shared models",
+        "Written once, versioned, consumed by all five APIs"
+      ]
+    }
+  ],
+  "schema_version": 1
+}

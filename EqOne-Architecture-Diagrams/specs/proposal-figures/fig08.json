@@ -1,0 +1,197 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Figure 8 — One correlation ID, traceable end to end",
+    "quality_profile": "showcase",
+    "output": "/tmp/eqone/figs/fig08.html",
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "frontend": {
+          "label": "Front end"
+        },
+        "backend": {
+          "label": "Service / API"
+        },
+        "cloud": {
+          "label": "AWS service"
+        },
+        "database": {
+          "label": "Data store"
+        },
+        "security": {
+          "label": "Identity / security"
+        },
+        "external": {
+          "label": "Backend system"
+        },
+        "messagebus": {
+          "label": "Messaging"
+        }
+      }
+    }
+  },
+  "components": [
+    {
+      "id": "mfes",
+      "type": "frontend",
+      "label": "MFEs (browser)",
+      "sublabel": "RUM · errors",
+      "pos": [
+        40,
+        40
+      ],
+      "size": [
+        240,
+        64
+      ]
+    },
+    {
+      "id": "apis",
+      "type": "backend",
+      "label": "Experience APIs",
+      "sublabel": "logs · traces · metrics",
+      "pos": [
+        40,
+        150
+      ],
+      "size": [
+        240,
+        64
+      ]
+    },
+    {
+      "id": "infra",
+      "type": "cloud",
+      "label": "ECS / infrastructure",
+      "sublabel": "metrics · health",
+      "pos": [
+        40,
+        260
+      ],
+      "size": [
+        240,
+        64
+      ]
+    },
+    {
+      "id": "otel",
+      "type": "backend",
+      "label": "OpenTelemetry · Serilog",
+      "sublabel": "correlation ID attached",
+      "pos": [
+        370,
+        150
+      ],
+      "size": [
+        250,
+        64
+      ]
+    },
+    {
+      "id": "store",
+      "type": "database",
+      "label": "CloudWatch / App Insights",
+      "sublabel": "central store",
+      "pos": [
+        700,
+        150
+      ],
+      "size": [
+        260,
+        64
+      ]
+    },
+    {
+      "id": "dash",
+      "type": "frontend",
+      "label": "Dashboards",
+      "sublabel": "error rate · latency",
+      "pos": [
+        1040,
+        60
+      ],
+      "size": [
+        230,
+        64
+      ]
+    },
+    {
+      "id": "alerts",
+      "type": "security",
+      "label": "Alerts",
+      "sublabel": "saturation · SLO burn",
+      "pos": [
+        1040,
+        240
+      ],
+      "size": [
+        230,
+        64
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": "mfes",
+      "to": "otel",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "apis",
+      "to": "otel",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "infra",
+      "to": "otel",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "otel",
+      "to": "store",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "store",
+      "to": "dash",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "store",
+      "to": "alerts",
+      "variant": "security",
+      "fromSide": "right",
+      "toSide": "left"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "End-to-end tracing",
+      "items": [
+        "One correlation ID flows MFE → Experience API → backend system",
+        "A single customer journey can be followed across all three",
+        "No personal data is written to telemetry"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Per-MFE visibility",
+      "items": [
+        "Every MFE and every Experience API reports separately",
+        "A problem is attributed to one team's tile, not the whole app"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,349 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "EqOne — Current MVP Architecture (pre-MFE)",
+    "output": "EqOne-Current-Architecture-MVP.html",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "build",
+        "label": "Build & deploy",
+        "focus": [
+          "repos",
+          "ado",
+          "s3",
+          "ecs"
+        ],
+        "note": "One Azure DevOps pipeline per repo builds and deploys to S3 and to ECS via ECR."
+      },
+      {
+        "id": "runtime",
+        "label": "Runtime entry",
+        "focus": [
+          "user",
+          "cloudfront",
+          "spa",
+          "expapi"
+        ],
+        "note": "Public users reach the single-bundle SPA through CloudFront at nexus.equiniti.com."
+      },
+      {
+        "id": "signin",
+        "label": "Sign-in",
+        "focus": [
+          "gip",
+          "spa",
+          "expapi"
+        ],
+        "note": "GIP on Azure B2C issues the sign-in and service tokens the SPA sends as a JWT."
+      },
+      {
+        "id": "reads",
+        "label": "Downstream reads",
+        "focus": [
+          "expapi",
+          "domain",
+          "commonsvc",
+          "umbraco"
+        ],
+        "note": "The Experience API BFF orchestrates reads across domain services, common services and Umbraco."
+      }
+    ],
+    "animation": "none"
+  },
+  "components": [
+    {
+      "id": "repos",
+      "type": "external",
+      "label": "Azure DevOps repos",
+      "sublabel": "NexusUI · Experience API · NexusDesignSystem",
+      "pos": [
+        40,
+        80
+      ],
+      "size": [
+        250,
+        58
+      ]
+    },
+    {
+      "id": "ado",
+      "type": "cloud",
+      "label": "ADO Pipeline",
+      "sublabel": "build · test · deploy · one per repo",
+      "pos": [
+        360,
+        80
+      ],
+      "size": [
+        230,
+        58
+      ]
+    },
+    {
+      "id": "s3",
+      "type": "cloud",
+      "label": "S3 — SPA bundle",
+      "sublabel": "static hosting",
+      "pos": [
+        940,
+        50
+      ],
+      "size": [
+        230,
+        58
+      ]
+    },
+    {
+      "id": "ecs",
+      "type": "cloud",
+      "label": "ECR → ECS",
+      "sublabel": "Experience API container service",
+      "pos": [
+        660,
+        124
+      ],
+      "size": [
+        230,
+        58
+      ]
+    },
+    {
+      "id": "user",
+      "type": "external",
+      "label": "Public User",
+      "sublabel": "person",
+      "pos": [
+        40,
+        300
+      ],
+      "size": [
+        150,
+        58
+      ]
+    },
+    {
+      "id": "cloudfront",
+      "type": "cloud",
+      "label": "CloudFront",
+      "sublabel": "nexus.equiniti.com",
+      "pos": [
+        250,
+        300
+      ],
+      "size": [
+        170,
+        58
+      ]
+    },
+    {
+      "id": "spa",
+      "type": "frontend",
+      "label": "S3 — Nexus SPA",
+      "sublabel": "single bundle · one login · one navigation",
+      "pos": [
+        480,
+        300
+      ],
+      "size": [
+        230,
+        58
+      ]
+    },
+    {
+      "id": "gip",
+      "type": "security",
+      "label": "GIP (Azure B2C)",
+      "sublabel": "sign-in + service tokens",
+      "pos": [
+        480,
+        420
+      ],
+      "size": [
+        230,
+        58
+      ]
+    },
+    {
+      "id": "expapi",
+      "type": "backend",
+      "label": "Experience API",
+      "sublabel": "BFF · ECS · orchestrates reads",
+      "pos": [
+        770,
+        300
+      ],
+      "size": [
+        200,
+        58
+      ]
+    },
+    {
+      "id": "domain",
+      "type": "external",
+      "label": "Domain Services",
+      "sublabel": "domain data",
+      "pos": [
+        1040,
+        230
+      ],
+      "size": [
+        200,
+        58
+      ]
+    },
+    {
+      "id": "commonsvc",
+      "type": "external",
+      "label": "Common Services",
+      "sublabel": "share-price feed + others",
+      "pos": [
+        1040,
+        300
+      ],
+      "size": [
+        200,
+        58
+      ]
+    },
+    {
+      "id": "umbraco",
+      "type": "external",
+      "label": "Umbraco",
+      "sublabel": "copy · learning content",
+      "pos": [
+        1040,
+        370
+      ],
+      "size": [
+        200,
+        58
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Build & deploy — Azure DevOps pipelines → AWS",
+      "wraps": [
+        "repos",
+        "ado",
+        "s3",
+        "ecs"
+      ],
+      "pad": 18
+    },
+    {
+      "kind": "region",
+      "label": "Runtime — AWS · public entry nexus.equiniti.com",
+      "wraps": [
+        "user",
+        "cloudfront",
+        "spa",
+        "gip",
+        "expapi",
+        "domain",
+        "commonsvc",
+        "umbraco"
+      ],
+      "pad": 18
+    }
+  ],
+  "connections": [
+    {
+      "id": "repos-ado",
+      "from": "repos",
+      "to": "ado"
+    },
+    {
+      "id": "ado-s3",
+      "from": "ado",
+      "to": "s3"
+    },
+    {
+      "id": "ado-ecs",
+      "from": "ado",
+      "to": "ecs"
+    },
+    {
+      "id": "s3-spa",
+      "from": "s3",
+      "to": "spa",
+      "label": "deploys to S3",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "user-cf",
+      "from": "user",
+      "to": "cloudfront",
+      "variant": "emphasis"
+    },
+    {
+      "id": "cf-spa",
+      "from": "cloudfront",
+      "to": "spa",
+      "variant": "emphasis"
+    },
+    {
+      "id": "spa-api",
+      "from": "spa",
+      "to": "expapi",
+      "label": "API (JWT)",
+      "variant": "emphasis"
+    },
+    {
+      "id": "gip-spa",
+      "from": "gip",
+      "to": "spa",
+      "variant": "security",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "api-domain",
+      "from": "expapi",
+      "to": "domain"
+    },
+    {
+      "id": "api-common",
+      "from": "expapi",
+      "to": "commonsvc"
+    },
+    {
+      "id": "api-cms",
+      "from": "expapi",
+      "to": "umbraco"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Today — single-page application",
+      "items": [
+        "One Nexus SPA bundle on S3 behind CloudFront at nexus.equiniti.com",
+        "One login and one navigation for every product area",
+        "NexusDesignSystem ships inside the same bundle"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Build and deploy",
+      "items": [
+        "One Azure DevOps pipeline per repo: build, test, deploy",
+        "SPA bundle deploys to S3; Experience API image goes ECR → ECS"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Runtime dependencies",
+      "items": [
+        "GIP on Azure B2C issues sign-in and service tokens",
+        "One Experience API BFF orchestrates all downstream reads",
+        "Domain Services, Common Services and Umbraco sit behind that BFF"
+      ]
+    }
+  ]
+}

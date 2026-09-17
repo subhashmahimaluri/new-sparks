@@ -1,0 +1,212 @@
+{
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Figure 9 — Local development",
+    "quality_profile": "showcase",
+    "output": "/tmp/eqone/figs/fig09.html",
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "frontend": {
+          "label": "Front end"
+        },
+        "backend": {
+          "label": "Service / API"
+        },
+        "cloud": {
+          "label": "AWS service"
+        },
+        "database": {
+          "label": "Data store"
+        },
+        "security": {
+          "label": "Identity / security"
+        },
+        "external": {
+          "label": "Backend system"
+        },
+        "messagebus": {
+          "label": "Messaging"
+        }
+      }
+    }
+  },
+  "components": [
+    {
+      "id": "shell",
+      "type": "frontend",
+      "label": "Shell (host)",
+      "sublabel": "localhost:3000 · Module Federation",
+      "pos": [
+        40,
+        170
+      ],
+      "size": [
+        240,
+        74
+      ]
+    },
+    {
+      "id": "sr",
+      "type": "frontend",
+      "label": "Shares Reg",
+      "sublabel": "localhost:3005",
+      "pos": [
+        350,
+        40
+      ],
+      "size": [
+        210,
+        58
+      ]
+    },
+    {
+      "id": "ae",
+      "type": "frontend",
+      "label": "All-Employee",
+      "sublabel": "localhost:3006",
+      "pos": [
+        350,
+        130
+      ],
+      "size": [
+        210,
+        58
+      ]
+    },
+    {
+      "id": "ds",
+      "type": "frontend",
+      "label": "Discretionary",
+      "sublabel": "localhost:3007",
+      "pos": [
+        350,
+        220
+      ],
+      "size": [
+        210,
+        58
+      ]
+    },
+    {
+      "id": "ef",
+      "type": "frontend",
+      "label": "Shared EFSL *",
+      "sublabel": "localhost:3008",
+      "pos": [
+        350,
+        310
+      ],
+      "size": [
+        210,
+        58
+      ]
+    },
+    {
+      "id": "apis",
+      "type": "backend",
+      "label": "Experience APIs",
+      "sublabel": "run locally, or point to INT1",
+      "pos": [
+        650,
+        130
+      ],
+      "size": [
+        250,
+        74
+      ]
+    },
+    {
+      "id": "int1",
+      "type": "external",
+      "label": "INT1 backends",
+      "sublabel": "shared integration environment",
+      "pos": [
+        650,
+        250
+      ],
+      "size": [
+        250,
+        74
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Developer machine (localhost)",
+      "wraps": [
+        "shell",
+        "sr",
+        "ae",
+        "ds",
+        "ef"
+      ],
+      "pad": 20
+    }
+  ],
+  "connections": [
+    {
+      "from": "shell",
+      "to": "sr",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "shell",
+      "to": "ae",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "shell",
+      "to": "ds",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "shell",
+      "to": "ef",
+      "variant": "dashed",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "ae",
+      "to": "apis",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "apis",
+      "to": "int1",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "How a developer runs it",
+      "items": [
+        "The Shell runs on localhost:3000 and loads each MFE from its local port",
+        "A local config selects which remotes to load",
+        "Each MFE can also run standalone with its own dev login"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Backends",
+      "items": [
+        "Experience APIs run locally, or point at INT1",
+        "No developer needs the whole estate running to work on one product"
+      ]
+    }
+  ],
+  "schema_version": 1
+}

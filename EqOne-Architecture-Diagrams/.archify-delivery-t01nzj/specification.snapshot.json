@@ -1,0 +1,234 @@
+{
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Product-aligned alternative — one MFE per product",
+    "quality_profile": "showcase",
+    "output": "/tmp/eqone/prod/p1.html",
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "frontend": {
+          "label": "Micro-frontend"
+        }
+      }
+    },
+    "animation": "none"
+  },
+  "components": [
+    {
+      "id": "shell",
+      "type": "frontend",
+      "label": "Shell (Core)",
+      "sublabel": "EQNexusUI · sign-in · IDV · navigation",
+      "pos": [
+        40,
+        270
+      ],
+      "size": [
+        300,
+        80
+      ],
+      "tag": "Alphas"
+    },
+    {
+      "id": "sharescsn",
+      "type": "frontend",
+      "label": "Shares / CSN",
+      "sublabel": "in the Shell initially",
+      "pos": [
+        440,
+        40
+      ],
+      "size": [
+        280,
+        64
+      ],
+      "tag": "Alphas"
+    },
+    {
+      "id": "gn",
+      "type": "frontend",
+      "label": "Global Nominee",
+      "sublabel": "eq-gn-mfe",
+      "pos": [
+        440,
+        128
+      ],
+      "size": [
+        280,
+        64
+      ],
+      "tag": "Alphas"
+    },
+    {
+      "id": "saye",
+      "type": "frontend",
+      "label": "SAYE",
+      "sublabel": "eq-saye-mfe",
+      "pos": [
+        440,
+        216
+      ],
+      "size": [
+        280,
+        64
+      ],
+      "tag": "Panthers"
+    },
+    {
+      "id": "sip",
+      "type": "frontend",
+      "label": "SIP",
+      "sublabel": "eq-sip-mfe",
+      "pos": [
+        440,
+        304
+      ],
+      "size": [
+        280,
+        64
+      ],
+      "tag": "Panthers"
+    },
+    {
+      "id": "gspp",
+      "type": "frontend",
+      "label": "GSPP",
+      "sublabel": "eq-gspp-mfe",
+      "pos": [
+        440,
+        392
+      ],
+      "size": [
+        280,
+        64
+      ],
+      "tag": "Panthers"
+    },
+    {
+      "id": "disc",
+      "type": "frontend",
+      "label": "Discretionary Awards",
+      "sublabel": "Cash · Share · Option",
+      "pos": [
+        440,
+        480
+      ],
+      "size": [
+        280,
+        64
+      ],
+      "tag": "Rhinos"
+    },
+    {
+      "id": "efsl",
+      "type": "frontend",
+      "label": "Shared EFSL *",
+      "sublabel": "to confirm",
+      "pos": [
+        440,
+        568
+      ],
+      "size": [
+        280,
+        64
+      ],
+      "tag": "to confirm"
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "EqOne — one application · one sign-in · one.equiniti.com",
+      "wraps": [
+        "shell",
+        "sharescsn",
+        "gn",
+        "saye",
+        "sip",
+        "gspp",
+        "disc",
+        "efsl"
+      ],
+      "pad": 22
+    }
+  ],
+  "connections": [
+    {
+      "from": "shell",
+      "to": "sharescsn",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "shell",
+      "to": "gn",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "shell",
+      "to": "saye",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "shell",
+      "to": "sip",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "shell",
+      "to": "gspp",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "shell",
+      "to": "disc",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "shell",
+      "to": "efsl",
+      "variant": "dashed",
+      "fromSide": "right",
+      "toSide": "left"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "The split",
+      "items": [
+        "Seven product MFEs instead of four category MFEs",
+        "Shares and CSN stay inside the Shell for the initial release",
+        "Each product releases on its own cadence"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "The constraint",
+      "items": [
+        "Three teams would own seven MFEs plus the Shell",
+        "Ownership becomes nominal rather than real"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Open item",
+      "items": [
+        "Shared EFSL grouping and its backend are not confirmed"
+      ]
+    }
+  ],
+  "schema_version": 1
+}

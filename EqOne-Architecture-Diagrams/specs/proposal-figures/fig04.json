@@ -1,0 +1,229 @@
+{
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Figure 4 — End to end: build, deploy and runtime",
+    "quality_profile": "showcase",
+    "output": "/tmp/eqone/figs/fig04.html",
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "frontend": {
+          "label": "Front end"
+        },
+        "backend": {
+          "label": "Service / API"
+        },
+        "cloud": {
+          "label": "AWS service"
+        },
+        "database": {
+          "label": "Data store"
+        },
+        "security": {
+          "label": "Identity / security"
+        },
+        "external": {
+          "label": "Backend system"
+        },
+        "messagebus": {
+          "label": "Messaging"
+        }
+      }
+    }
+  },
+  "lanes": [
+    {
+      "id": "src",
+      "label": "Repositories"
+    },
+    {
+      "id": "ci",
+      "label": "Azure DevOps"
+    },
+    {
+      "id": "host",
+      "label": "AWS hosting"
+    },
+    {
+      "id": "id",
+      "label": "Identity"
+    },
+    {
+      "id": "run",
+      "label": "Runtime — one.equiniti.com"
+    }
+  ],
+  "phases": [
+    {
+      "id": "build",
+      "label": "Build",
+      "fromCol": 0,
+      "toCol": 1
+    },
+    {
+      "id": "publish",
+      "label": "Publish",
+      "fromCol": 2,
+      "toCol": 3,
+      "variant": "emphasis"
+    },
+    {
+      "id": "serve",
+      "label": "Serve",
+      "fromCol": 4,
+      "toCol": 5,
+      "variant": "dashed"
+    }
+  ],
+  "mainPath": [
+    "repos",
+    "pipeline",
+    "s3",
+    "shell",
+    "mfe",
+    "expapi"
+  ],
+  "nodes": [
+    {
+      "id": "repos",
+      "lane": "src",
+      "col": 0,
+      "type": "frontend",
+      "label": "Repos",
+      "sublabel": "MFE + API + lib",
+      "width": 165
+    },
+    {
+      "id": "pipeline",
+      "lane": "ci",
+      "col": 1,
+      "type": "backend",
+      "label": "ADO pipeline",
+      "sublabel": "one per repo",
+      "width": 165
+    },
+    {
+      "id": "s3",
+      "lane": "host",
+      "col": 2,
+      "type": "cloud",
+      "label": "S3 + CDN",
+      "sublabel": "one folder per MFE",
+      "width": 165
+    },
+    {
+      "id": "ecs",
+      "lane": "host",
+      "col": 3,
+      "type": "cloud",
+      "label": "ECR → ECS",
+      "sublabel": "one service per API",
+      "width": 165
+    },
+    {
+      "id": "gip",
+      "lane": "id",
+      "col": 2,
+      "type": "security",
+      "label": "GIP (B2C)",
+      "sublabel": "one sign-in",
+      "width": 165
+    },
+    {
+      "id": "shell",
+      "lane": "run",
+      "col": 3,
+      "type": "frontend",
+      "label": "Shell (Core)",
+      "sublabel": "owns the session",
+      "width": 165
+    },
+    {
+      "id": "mfe",
+      "lane": "run",
+      "col": 4,
+      "type": "frontend",
+      "label": "Category MFE",
+      "sublabel": "Module Federation",
+      "width": 165
+    },
+    {
+      "id": "expapi",
+      "lane": "run",
+      "col": 5,
+      "type": "backend",
+      "label": "Its Experience API",
+      "sublabel": "own load balancer",
+      "width": 165
+    }
+  ],
+  "edges": [
+    {
+      "from": "repos",
+      "to": "pipeline",
+      "variant": "emphasis"
+    },
+    {
+      "from": "pipeline",
+      "to": "s3",
+      "label": "MFE bundles",
+      "variant": "emphasis"
+    },
+    {
+      "from": "pipeline",
+      "to": "ecs",
+      "label": "API images"
+    },
+    {
+      "from": "s3",
+      "to": "shell",
+      "label": "bundles",
+      "variant": "emphasis"
+    },
+    {
+      "from": "gip",
+      "to": "shell",
+      "label": "sign in once",
+      "variant": "security"
+    },
+    {
+      "from": "shell",
+      "to": "mfe",
+      "label": "loads remote",
+      "variant": "emphasis"
+    },
+    {
+      "from": "mfe",
+      "to": "expapi",
+      "label": "direct call",
+      "variant": "emphasis"
+    },
+    {
+      "from": "ecs",
+      "to": "expapi",
+      "label": "runs on",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Build and deploy",
+      "items": [
+        "Every repository has its own Azure DevOps pipeline",
+        "MFE bundles go to their own S3 folder; API images go to their own ECS service",
+        "The shared library is published to Azure Artifacts"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Runtime",
+      "items": [
+        "The Shell signs the customer in once via GIP and loads every product MFE",
+        "Each MFE calls its own Experience API directly — no shared gateway hop",
+        "Each Experience API calls only its own backend system"
+      ]
+    }
+  ],
+  "schema_version": 2
+}

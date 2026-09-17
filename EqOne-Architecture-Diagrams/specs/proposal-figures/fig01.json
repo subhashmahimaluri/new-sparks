@@ -1,0 +1,187 @@
+{
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Figure 1 — Current state: one SPA, one Experience API",
+    "quality_profile": "showcase",
+    "output": "/tmp/eqone/figs/fig01.html",
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "frontend": {
+          "label": "Front end"
+        },
+        "backend": {
+          "label": "Service / API"
+        },
+        "cloud": {
+          "label": "AWS service"
+        },
+        "database": {
+          "label": "Data store"
+        },
+        "security": {
+          "label": "Identity / security"
+        },
+        "external": {
+          "label": "Backend system"
+        },
+        "messagebus": {
+          "label": "Messaging"
+        }
+      }
+    }
+  },
+  "components": [
+    {
+      "id": "cust",
+      "type": "external",
+      "label": "Customer",
+      "sublabel": "one.equiniti.com",
+      "pos": [
+        40,
+        60
+      ],
+      "size": [
+        160,
+        58
+      ]
+    },
+    {
+      "id": "cf",
+      "type": "cloud",
+      "label": "CloudFront",
+      "sublabel": "static delivery",
+      "pos": [
+        250,
+        60
+      ],
+      "size": [
+        180,
+        58
+      ]
+    },
+    {
+      "id": "spa",
+      "type": "frontend",
+      "label": "EqOne SPA",
+      "sublabel": "EQNexusUI · single bundle",
+      "pos": [
+        480,
+        60
+      ],
+      "size": [
+        250,
+        58
+      ]
+    },
+    {
+      "id": "gip",
+      "type": "security",
+      "label": "GIP (Azure B2C)",
+      "sublabel": "sign-in",
+      "pos": [
+        480,
+        185
+      ],
+      "size": [
+        250,
+        58
+      ]
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "Experience API",
+      "sublabel": "Equiniti.Nexus.Experience.Api",
+      "pos": [
+        800,
+        60
+      ],
+      "size": [
+        260,
+        58
+      ]
+    },
+    {
+      "id": "be",
+      "type": "external",
+      "label": "Common Services · Umbraco",
+      "sublabel": "backend systems",
+      "pos": [
+        800,
+        185
+      ],
+      "size": [
+        260,
+        58
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Today — one deployable front end, one Experience API",
+      "wraps": [
+        "spa",
+        "api"
+      ],
+      "pad": 20
+    }
+  ],
+  "connections": [
+    {
+      "from": "cust",
+      "to": "cf",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "cf",
+      "to": "spa",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "spa",
+      "to": "gip",
+      "variant": "security",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "from": "spa",
+      "to": "api",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "api",
+      "to": "be",
+      "fromSide": "bottom",
+      "toSide": "top"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "amber",
+      "title": "What this costs us today",
+      "items": [
+        "One bundle and one deploy — every product ships together",
+        "A change to any product re-tests and re-releases all of them",
+        "One team's regression blocks every other team"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "What we keep",
+      "items": [
+        "One sign-in at GIP, one customer-facing domain",
+        "The existing Experience API stays and becomes the Shell's API"
+      ]
+    }
+  ],
+  "schema_version": 1
+}

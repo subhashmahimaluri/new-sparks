@@ -1,0 +1,160 @@
+{
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "Figure 7 — One sign-in, silent token, validated at every API",
+    "viewBox": [
+      980,
+      660
+    ],
+    "quality_profile": "showcase",
+    "output": "/tmp/eqone/figs/fig07.html",
+    "column_fit": "spread",
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "emphasis": {
+          "label": "Request"
+        },
+        "return": {
+          "label": "Response"
+        },
+        "security": {
+          "label": "Identity step"
+        },
+        "default": {
+          "label": "Call"
+        },
+        "dashed": {
+          "label": "Optional"
+        }
+      }
+    }
+  },
+  "participants": [
+    {
+      "id": "cust",
+      "type": "external",
+      "label": "Customer",
+      "sublabel": "browser"
+    },
+    {
+      "id": "gip",
+      "type": "security",
+      "label": "GIP",
+      "sublabel": "Azure B2C"
+    },
+    {
+      "id": "shell",
+      "type": "frontend",
+      "label": "Shell",
+      "sublabel": "owns the session"
+    },
+    {
+      "id": "mfe",
+      "type": "frontend",
+      "label": "Product MFE",
+      "sublabel": "silent token"
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "Experience API",
+      "sublabel": "validates the JWT"
+    },
+    {
+      "id": "be",
+      "type": "external",
+      "label": "Backend system",
+      "sublabel": "Sirius · Centive"
+    }
+  ],
+  "segments": [
+    {
+      "from": 165,
+      "to": 260,
+      "label": "Sign in once"
+    },
+    {
+      "from": 275,
+      "to": 370,
+      "label": "Share silently"
+    },
+    {
+      "from": 385,
+      "to": 480,
+      "label": "Call with proof"
+    }
+  ],
+  "messages": [
+    {
+      "from": "cust",
+      "to": "gip",
+      "y": 190,
+      "label": "1 sign in",
+      "variant": "security"
+    },
+    {
+      "from": "gip",
+      "to": "shell",
+      "y": 240,
+      "label": "2 token",
+      "variant": "return"
+    },
+    {
+      "from": "shell",
+      "to": "mfe",
+      "y": 300,
+      "label": "3 silent token",
+      "variant": "emphasis"
+    },
+    {
+      "from": "mfe",
+      "to": "api",
+      "y": 350,
+      "label": "4 Bearer JWT",
+      "variant": "emphasis"
+    },
+    {
+      "from": "api",
+      "to": "gip",
+      "y": 410,
+      "label": "5 service token",
+      "variant": "security"
+    },
+    {
+      "from": "api",
+      "to": "be",
+      "y": 460,
+      "label": "6 downstream call",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "The Shell owns the session",
+      "items": [
+        "IDV, fraud and impersonation are applied once, for every MFE",
+        "No MFE ever runs its own sign-in"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Every API validates independently",
+      "items": [
+        "Issuer, audience and signature are checked on every request",
+        "The user token is never passed downstream"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Controls",
+      "items": [
+        "Secrets in AWS Secrets Manager, never in a repository",
+        "No personal data in telemetry",
+        "HTTPS throughout"
+      ]
+    }
+  ],
+  "schema_version": 1
+}

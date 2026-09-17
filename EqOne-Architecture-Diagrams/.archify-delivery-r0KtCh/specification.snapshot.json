@@ -1,0 +1,464 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "EqOne — Category-aligned MFEs to Backend Systems",
+    "output": "EqOne-Category-Architecture-Backends.html",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "core",
+        "label": "Core",
+        "focus": [
+          "shell",
+          "shellapi",
+          "common"
+        ],
+        "note": "The Shell keeps the existing Equiniti.Nexus.Experience.Api BFF, which reads Common Services and Umbraco."
+      },
+      {
+        "id": "shares-reg",
+        "label": "Shares Reg",
+        "focus": [
+          "sr",
+          "srapi",
+          "sirius",
+          "xanite"
+        ],
+        "note": "Shares and CSN read the Sirius Holding Facade domain service; Global Nominee reads Xanite Web Services."
+      },
+      {
+        "id": "all-employee",
+        "label": "All-Employee",
+        "focus": [
+          "ae",
+          "aeapi",
+          "sirius",
+          "siriussip",
+          "toption"
+        ],
+        "note": "SAYE and SIP use Sirius domain services, GSPP uses tOption; Sirius Holding Facade is shared with Shares Reg."
+      },
+      {
+        "id": "discretionary",
+        "label": "Discretionary",
+        "focus": [
+          "ds",
+          "dsapi",
+          "centive"
+        ],
+        "note": "Cash, Share and Option Awards all resolve to the Centive Portal API / Web Services."
+      }
+    ],
+    "legend": {
+      "entries": {
+        "backend": {
+          "label": "BFF · Experience API"
+        },
+        "external": {
+          "label": "Domain service / backend system"
+        }
+      }
+    },
+    "animation": "none"
+  },
+  "components": [
+    {
+      "id": "shell",
+      "type": "frontend",
+      "label": "Shell (Core)",
+      "sublabel": "EQNexusUI · host",
+      "pos": [
+        86,
+        40
+      ],
+      "size": [
+        170,
+        58
+      ],
+      "tag": "Alphas"
+    },
+    {
+      "id": "sr",
+      "type": "frontend",
+      "label": "Shares Reg",
+      "sublabel": "Shares · CSN · Dividends",
+      "pos": [
+        348,
+        40
+      ],
+      "size": [
+        170,
+        58
+      ],
+      "tag": "Alphas"
+    },
+    {
+      "id": "ae",
+      "type": "frontend",
+      "label": "All-Employee",
+      "sublabel": "SAYE · SIP · GSPP",
+      "pos": [
+        610,
+        40
+      ],
+      "size": [
+        170,
+        58
+      ],
+      "tag": "Panthers"
+    },
+    {
+      "id": "ds",
+      "type": "frontend",
+      "label": "Discretionary",
+      "sublabel": "Cash · Share · Option",
+      "pos": [
+        872,
+        40
+      ],
+      "size": [
+        170,
+        58
+      ],
+      "tag": "Rhinos"
+    },
+    {
+      "id": "efsl",
+      "type": "frontend",
+      "label": "Shared EFSL *",
+      "sublabel": "share plans · nominee",
+      "pos": [
+        1134,
+        40
+      ],
+      "size": [
+        170,
+        58
+      ],
+      "tag": "to confirm"
+    },
+    {
+      "id": "shellapi",
+      "type": "backend",
+      "label": "Equiniti.Nexus.Experience.Api",
+      "sublabel": "BFF · existing",
+      "pos": [
+        56,
+        200
+      ],
+      "size": [
+        230,
+        58
+      ]
+    },
+    {
+      "id": "srapi",
+      "type": "backend",
+      "label": "Shares Reg Experience API",
+      "sublabel": "BFF · new",
+      "pos": [
+        318,
+        200
+      ],
+      "size": [
+        230,
+        58
+      ]
+    },
+    {
+      "id": "aeapi",
+      "type": "backend",
+      "label": "All-Employee Experience API",
+      "sublabel": "BFF · new",
+      "pos": [
+        580,
+        200
+      ],
+      "size": [
+        230,
+        58
+      ]
+    },
+    {
+      "id": "dsapi",
+      "type": "backend",
+      "label": "Discretionary Experience API",
+      "sublabel": "BFF · new",
+      "pos": [
+        842,
+        200
+      ],
+      "size": [
+        230,
+        58
+      ]
+    },
+    {
+      "id": "efslapi",
+      "type": "backend",
+      "label": "Shared EFSL Experience API *",
+      "sublabel": "BFF · new · to confirm",
+      "pos": [
+        1104,
+        200
+      ],
+      "size": [
+        230,
+        58
+      ]
+    },
+    {
+      "id": "common",
+      "type": "external",
+      "label": "Common Services · Umbraco",
+      "sublabel": "shared platform",
+      "pos": [
+        30,
+        360
+      ],
+      "size": [
+        172,
+        58
+      ]
+    },
+    {
+      "id": "xanite",
+      "type": "external",
+      "label": "Xanite Web Services",
+      "sublabel": "Global Nominee",
+      "pos": [
+        214,
+        360
+      ],
+      "size": [
+        172,
+        58
+      ]
+    },
+    {
+      "id": "sirius",
+      "type": "external",
+      "label": "Sirius Holding Facade",
+      "sublabel": "Shares · CSN · SAYE",
+      "pos": [
+        398,
+        360
+      ],
+      "size": [
+        172,
+        58
+      ]
+    },
+    {
+      "id": "siriussip",
+      "type": "external",
+      "label": "Sirius SIP Facade – EQ",
+      "sublabel": "SIP",
+      "pos": [
+        582,
+        360
+      ],
+      "size": [
+        172,
+        58
+      ]
+    },
+    {
+      "id": "toption",
+      "type": "external",
+      "label": "tOption / ESP Executive",
+      "sublabel": "GSPP",
+      "pos": [
+        794,
+        360
+      ],
+      "size": [
+        172,
+        58
+      ]
+    },
+    {
+      "id": "centive",
+      "type": "external",
+      "label": "Centive Portal API",
+      "sublabel": "Web Services · Awards",
+      "pos": [
+        978,
+        360
+      ],
+      "size": [
+        172,
+        58
+      ]
+    },
+    {
+      "id": "efslbe",
+      "type": "external",
+      "label": "Backend — to confirm",
+      "sublabel": "EFSL",
+      "pos": [
+        1162,
+        360
+      ],
+      "size": [
+        172,
+        58
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "EqOne · one.equiniti.com — category MFEs, one sign-in",
+      "wraps": [
+        "shell",
+        "sr",
+        "ae",
+        "ds",
+        "efsl"
+      ],
+      "pad": 18
+    },
+    {
+      "kind": "region",
+      "label": "Domain services",
+      "wraps": [
+        "xanite",
+        "sirius",
+        "siriussip"
+      ],
+      "pad": 14
+    },
+    {
+      "kind": "region",
+      "label": "Backend systems",
+      "wraps": [
+        "toption",
+        "centive",
+        "efslbe"
+      ],
+      "pad": 14
+    }
+  ],
+  "connections": [
+    {
+      "id": "shell-api",
+      "from": "shell",
+      "to": "shellapi"
+    },
+    {
+      "id": "sr-api",
+      "from": "sr",
+      "to": "srapi",
+      "variant": "emphasis"
+    },
+    {
+      "id": "ae-api",
+      "from": "ae",
+      "to": "aeapi",
+      "variant": "emphasis"
+    },
+    {
+      "id": "ds-api",
+      "from": "ds",
+      "to": "dsapi",
+      "variant": "emphasis"
+    },
+    {
+      "id": "efsl-api",
+      "from": "efsl",
+      "to": "efslapi",
+      "variant": "dashed"
+    },
+    {
+      "id": "shellapi-common",
+      "from": "shellapi",
+      "to": "common",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "srapi-xanite",
+      "from": "srapi",
+      "to": "xanite",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "srapi-sirius",
+      "from": "srapi",
+      "to": "sirius",
+      "label": "Shares · CSN",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDx": 30
+    },
+    {
+      "id": "aeapi-sirius",
+      "from": "aeapi",
+      "to": "sirius",
+      "label": "SAYE",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "aeapi-siriussip",
+      "from": "aeapi",
+      "to": "siriussip",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "aeapi-toption",
+      "from": "aeapi",
+      "to": "toption",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "dsapi-centive",
+      "from": "dsapi",
+      "to": "centive",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "efslapi-efslbe",
+      "from": "efslapi",
+      "to": "efslbe",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Category to backend system",
+      "items": [
+        "Shares Reg — Sirius Holding Facade (Shares, CSN); Xanite Web Services (Global Nominee)",
+        "All-Employee — Sirius Holding Facade (SAYE); Sirius SIP Facade – EQ (SIP); tOption / ESP Executive (GSPP)",
+        "Discretionary — Centive Portal API / Web Services for Cash, Share and Option Awards"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Experience API (BFF) model",
+      "items": [
+        "Each Experience API is a BFF owned by its category MFE; the Shell keeps the existing Equiniti.Nexus.Experience.Api",
+        "Four new BFFs, one per category MFE, called directly with no shared gateway",
+        "Each BFF calls only its own domain services or backend systems; Sirius Holding Facade is the one shared domain service"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Open items",
+      "items": [
+        "Shared EFSL grouping is not yet confirmed",
+        "EFSL backend system to be confirmed",
+        "Dividends backend to be confirmed"
+      ]
+    }
+  ]
+}

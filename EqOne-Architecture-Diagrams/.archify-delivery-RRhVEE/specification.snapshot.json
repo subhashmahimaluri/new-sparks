@@ -1,0 +1,131 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "The two models are a sequence, not a choice",
+    "quality_profile": "showcase",
+    "output": "/tmp/eqone/prod/p3.html",
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "frontend": {
+          "label": "Where we are"
+        },
+        "security": {
+          "label": "Decision point"
+        },
+        "backend": {
+          "label": "Refactor step"
+        },
+        "cloud": {
+          "label": "Where we may end up"
+        }
+      }
+    },
+    "animation": "none"
+  },
+  "lanes": [
+    {
+      "id": "path",
+      "label": "Evolution path"
+    }
+  ],
+  "phases": [
+    {
+      "id": "now",
+      "label": "Adopt",
+      "fromCol": 0,
+      "toCol": 1
+    },
+    {
+      "id": "later",
+      "label": "Split when justified",
+      "fromCol": 2,
+      "toCol": 3,
+      "variant": "emphasis"
+    }
+  ],
+  "mainPath": [
+    "cat",
+    "trigger",
+    "split",
+    "prod"
+  ],
+  "nodes": [
+    {
+      "id": "cat",
+      "lane": "path",
+      "col": 0,
+      "type": "frontend",
+      "label": "Category-aligned",
+      "sublabel": "4 MFEs · 5 APIs",
+      "tag": "today",
+      "width": 190
+    },
+    {
+      "id": "trigger",
+      "lane": "path",
+      "col": 1,
+      "type": "security",
+      "label": "Split trigger",
+      "sublabel": "does it earn its keep?",
+      "width": 190
+    },
+    {
+      "id": "split",
+      "lane": "path",
+      "col": 2,
+      "type": "backend",
+      "label": "Split a category",
+      "sublabel": "one product moves out",
+      "width": 190
+    },
+    {
+      "id": "prod",
+      "lane": "path",
+      "col": 3,
+      "type": "cloud",
+      "label": "Product-aligned",
+      "sublabel": "only where justified",
+      "width": 190
+    }
+  ],
+  "edges": [
+    {
+      "from": "cat",
+      "to": "trigger",
+      "variant": "emphasis"
+    },
+    {
+      "from": "trigger",
+      "to": "split",
+      "label": "yes",
+      "variant": "emphasis"
+    },
+    {
+      "from": "split",
+      "to": "prod",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "What triggers a split",
+      "items": [
+        "A team is created that owns one product outright",
+        "A product's release cadence diverges from its siblings",
+        "A product is to be replaced, re-platformed or divested"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Why the order matters",
+      "items": [
+        "Splitting a category MFE later is a contained refactor",
+        "Merging seven MFEs back into four is not",
+        "Phase 3 of the migration plan already allows 'split if justified'"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,511 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "EqOne — End-to-end MFE Architecture",
+    "output": "EqOne-E2E-MFE-Architecture.html",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "build",
+        "label": "Build & deploy",
+        "focus": [
+          "repos",
+          "apirepos",
+          "sharedlib",
+          "ado",
+          "s3",
+          "ecs",
+          "artifacts"
+        ],
+        "note": "One Azure DevOps pipeline per repo publishes MFE bundles to S3, API images to ECS and the shared library to Azure Artifacts."
+      },
+      {
+        "id": "shell",
+        "label": "Shell & sign-in",
+        "focus": [
+          "user",
+          "cloudfront",
+          "shell",
+          "gip"
+        ],
+        "note": "The Shell owns the session at one.equiniti.com and loads MFEs over Module Federation."
+      },
+      {
+        "id": "mfes",
+        "label": "Category MFEs",
+        "focus": [
+          "shell",
+          "sr",
+          "ae",
+          "ds",
+          "efsl"
+        ],
+        "note": "Four category MFEs plus the unconfirmed Shared EFSL load into the Shell as remotes."
+      },
+      {
+        "id": "apis",
+        "label": "Experience APIs",
+        "focus": [
+          "shellapi",
+          "srapi",
+          "aeapi",
+          "dsapi",
+          "efslapi"
+        ],
+        "note": "Each MFE calls its own Experience API BFF running as a separate ECS service."
+      }
+    ],
+    "animation": "none"
+  },
+  "components": [
+    {
+      "id": "repos",
+      "type": "external",
+      "label": "Shell + product MFE repos",
+      "sublabel": "Azure DevOps",
+      "pos": [
+        40,
+        74
+      ],
+      "size": [
+        235,
+        50
+      ]
+    },
+    {
+      "id": "apirepos",
+      "type": "external",
+      "label": "Experience API repos (5)",
+      "sublabel": "Azure DevOps",
+      "pos": [
+        40,
+        134
+      ],
+      "size": [
+        235,
+        50
+      ]
+    },
+    {
+      "id": "sharedlib",
+      "type": "external",
+      "label": "Shared-code library",
+      "sublabel": "Azure DevOps",
+      "pos": [
+        40,
+        194
+      ],
+      "size": [
+        235,
+        50
+      ]
+    },
+    {
+      "id": "ado",
+      "type": "cloud",
+      "label": "ADO pipeline",
+      "sublabel": "one per repo · build · test · deploy",
+      "pos": [
+        340,
+        134
+      ],
+      "size": [
+        240,
+        50
+      ]
+    },
+    {
+      "id": "s3",
+      "type": "cloud",
+      "label": "S3 — one folder per MFE",
+      "sublabel": "/shell /shares-reg /all-employee /discretionary",
+      "pos": [
+        650,
+        74
+      ],
+      "size": [
+        300,
+        50
+      ]
+    },
+    {
+      "id": "ecs",
+      "type": "cloud",
+      "label": "ECR → ECS — one service per API",
+      "sublabel": "Equiniti.Nexus.Experience.Api + 4 new",
+      "pos": [
+        650,
+        134
+      ],
+      "size": [
+        300,
+        50
+      ]
+    },
+    {
+      "id": "artifacts",
+      "type": "cloud",
+      "label": "Azure Artifacts",
+      "sublabel": "shared library",
+      "pos": [
+        650,
+        194
+      ],
+      "size": [
+        300,
+        50
+      ]
+    },
+    {
+      "id": "user",
+      "type": "external",
+      "label": "Public User",
+      "sublabel": "person",
+      "pos": [
+        40,
+        428
+      ],
+      "size": [
+        140,
+        50
+      ]
+    },
+    {
+      "id": "cloudfront",
+      "type": "cloud",
+      "label": "CloudFront",
+      "sublabel": "one.equiniti.com",
+      "pos": [
+        230,
+        428
+      ],
+      "size": [
+        165,
+        50
+      ]
+    },
+    {
+      "id": "shell",
+      "type": "frontend",
+      "label": "Shell (Core) MFE",
+      "sublabel": "S3 · Module Federation · owns session",
+      "pos": [
+        445,
+        428
+      ],
+      "size": [
+        215,
+        50
+      ]
+    },
+    {
+      "id": "gip",
+      "type": "security",
+      "label": "GIP (Azure B2C)",
+      "sublabel": "one sign-in",
+      "pos": [
+        445,
+        518
+      ],
+      "size": [
+        215,
+        50
+      ]
+    },
+    {
+      "id": "sr",
+      "type": "frontend",
+      "label": "Shares Reg",
+      "sublabel": "remote",
+      "pos": [
+        715,
+        374
+      ],
+      "size": [
+        165,
+        46
+      ]
+    },
+    {
+      "id": "ae",
+      "type": "frontend",
+      "label": "All-Employee",
+      "sublabel": "remote",
+      "pos": [
+        715,
+        428
+      ],
+      "size": [
+        165,
+        46
+      ]
+    },
+    {
+      "id": "ds",
+      "type": "frontend",
+      "label": "Discretionary",
+      "sublabel": "remote",
+      "pos": [
+        715,
+        482
+      ],
+      "size": [
+        165,
+        46
+      ]
+    },
+    {
+      "id": "efsl",
+      "type": "frontend",
+      "label": "Shared EFSL *",
+      "sublabel": "remote · to confirm",
+      "pos": [
+        715,
+        536
+      ],
+      "size": [
+        165,
+        46
+      ]
+    },
+    {
+      "id": "shellapi",
+      "type": "backend",
+      "label": "Equiniti.Nexus.Experience.Api",
+      "sublabel": "BFF · existing",
+      "pos": [
+        950,
+        320
+      ],
+      "size": [
+        255,
+        46
+      ]
+    },
+    {
+      "id": "srapi",
+      "type": "backend",
+      "label": "Shares Reg Experience API",
+      "sublabel": "BFF · new",
+      "pos": [
+        950,
+        374
+      ],
+      "size": [
+        255,
+        46
+      ]
+    },
+    {
+      "id": "aeapi",
+      "type": "backend",
+      "label": "All-Employee Experience API",
+      "sublabel": "BFF · new",
+      "pos": [
+        950,
+        428
+      ],
+      "size": [
+        255,
+        46
+      ]
+    },
+    {
+      "id": "dsapi",
+      "type": "backend",
+      "label": "Discretionary Experience API",
+      "sublabel": "BFF · new",
+      "pos": [
+        950,
+        482
+      ],
+      "size": [
+        255,
+        46
+      ]
+    },
+    {
+      "id": "efslapi",
+      "type": "backend",
+      "label": "Shared EFSL Experience API *",
+      "sublabel": "BFF · new · to confirm",
+      "pos": [
+        950,
+        536
+      ],
+      "size": [
+        255,
+        46
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Build & deploy — Azure DevOps → AWS",
+      "wraps": [
+        "repos",
+        "apirepos",
+        "sharedlib",
+        "ado",
+        "s3",
+        "ecs",
+        "artifacts"
+      ],
+      "pad": 18
+    },
+    {
+      "kind": "region",
+      "label": "Runtime — AWS · public entry one.equiniti.com",
+      "wraps": [
+        "user",
+        "cloudfront",
+        "shell",
+        "gip",
+        "sr",
+        "ae",
+        "ds",
+        "efsl",
+        "shellapi",
+        "srapi",
+        "aeapi",
+        "dsapi",
+        "efslapi"
+      ],
+      "pad": 18
+    }
+  ],
+  "connections": [
+    {
+      "id": "repos-ado",
+      "from": "repos",
+      "to": "ado"
+    },
+    {
+      "id": "apis-ado",
+      "from": "apirepos",
+      "to": "ado"
+    },
+    {
+      "id": "lib-ado",
+      "from": "sharedlib",
+      "to": "ado"
+    },
+    {
+      "id": "ado-s3",
+      "from": "ado",
+      "to": "s3"
+    },
+    {
+      "id": "ado-ecs",
+      "from": "ado",
+      "to": "ecs"
+    },
+    {
+      "id": "ado-art",
+      "from": "ado",
+      "to": "artifacts"
+    },
+    {
+      "id": "user-cf",
+      "from": "user",
+      "to": "cloudfront",
+      "variant": "emphasis"
+    },
+    {
+      "id": "cf-shell",
+      "from": "cloudfront",
+      "to": "shell",
+      "variant": "emphasis"
+    },
+    {
+      "id": "gip-shell",
+      "from": "gip",
+      "to": "shell",
+      "variant": "security",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "shell-sr",
+      "from": "shell",
+      "to": "sr",
+      "variant": "emphasis"
+    },
+    {
+      "id": "shell-ae",
+      "from": "shell",
+      "to": "ae",
+      "variant": "emphasis"
+    },
+    {
+      "id": "shell-ds",
+      "from": "shell",
+      "to": "ds",
+      "variant": "emphasis"
+    },
+    {
+      "id": "shell-efsl",
+      "from": "shell",
+      "to": "efsl",
+      "variant": "dashed"
+    },
+    {
+      "id": "shell-api",
+      "from": "shell",
+      "to": "shellapi",
+      "fromSide": "top",
+      "toSide": "left"
+    },
+    {
+      "id": "sr-api",
+      "from": "sr",
+      "to": "srapi"
+    },
+    {
+      "id": "ae-api",
+      "from": "ae",
+      "to": "aeapi"
+    },
+    {
+      "id": "ds-api",
+      "from": "ds",
+      "to": "dsapi"
+    },
+    {
+      "id": "efsl-api",
+      "from": "efsl",
+      "to": "efslapi",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Shell and MFEs",
+      "items": [
+        "Shell (Core) owns the session and loads MFEs over Module Federation",
+        "One S3 folder per MFE: shell, shares-reg, all-employee, discretionary",
+        "GIP on Azure B2C gives one sign-in across every category"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Experience APIs (BFF)",
+      "items": [
+        "One ECS service per Experience API: the existing one plus four new",
+        "Each MFE calls only its own BFF, with no shared gateway between them"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Build and deploy",
+      "items": [
+        "One Azure DevOps pipeline per repo: build, test, deploy",
+        "Shared-code library publishes to Azure Artifacts for every MFE",
+        "Shared EFSL repo, MFE and API are not yet confirmed"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,269 @@
+{
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Figure 5 — Each MFE deploys independently",
+    "quality_profile": "showcase",
+    "output": "/tmp/eqone/figs/fig05.html",
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "frontend": {
+          "label": "Front end"
+        },
+        "backend": {
+          "label": "Service / API"
+        },
+        "cloud": {
+          "label": "AWS service"
+        },
+        "database": {
+          "label": "Data store"
+        },
+        "security": {
+          "label": "Identity / security"
+        },
+        "external": {
+          "label": "Backend system"
+        },
+        "messagebus": {
+          "label": "Messaging"
+        }
+      }
+    }
+  },
+  "lanes": [
+    {
+      "id": "shell",
+      "label": "Shell"
+    },
+    {
+      "id": "sr",
+      "label": "Shares Reg"
+    },
+    {
+      "id": "ae",
+      "label": "All-Employee"
+    },
+    {
+      "id": "ds",
+      "label": "Discretionary"
+    },
+    {
+      "id": "ef",
+      "label": "Shared EFSL *"
+    }
+  ],
+  "mainPath": [
+    "shellrepo",
+    "shellpipe",
+    "shells3"
+  ],
+  "nodes": [
+    {
+      "id": "shellrepo",
+      "lane": "shell",
+      "col": 0,
+      "type": "frontend",
+      "label": "Shell repo",
+      "sublabel": "own repository",
+      "width": 175
+    },
+    {
+      "id": "shellpipe",
+      "lane": "shell",
+      "col": 1,
+      "type": "backend",
+      "label": "ADO pipeline",
+      "sublabel": "build · test · deploy",
+      "width": 175
+    },
+    {
+      "id": "shells3",
+      "lane": "shell",
+      "col": 2,
+      "type": "cloud",
+      "label": "S3 folder",
+      "sublabel": "/ (host + manifest)",
+      "width": 175
+    },
+    {
+      "id": "srrepo",
+      "lane": "sr",
+      "col": 0,
+      "type": "frontend",
+      "label": "Shares Reg",
+      "sublabel": "own repository",
+      "width": 175
+    },
+    {
+      "id": "srpipe",
+      "lane": "sr",
+      "col": 1,
+      "type": "backend",
+      "label": "ADO pipeline",
+      "sublabel": "build · test · deploy",
+      "width": 175
+    },
+    {
+      "id": "srs3",
+      "lane": "sr",
+      "col": 2,
+      "type": "cloud",
+      "label": "S3 folder",
+      "sublabel": "/shares-reg",
+      "width": 175
+    },
+    {
+      "id": "aerepo",
+      "lane": "ae",
+      "col": 0,
+      "type": "frontend",
+      "label": "All-Employee",
+      "sublabel": "own repository",
+      "width": 175
+    },
+    {
+      "id": "aepipe",
+      "lane": "ae",
+      "col": 1,
+      "type": "backend",
+      "label": "ADO pipeline",
+      "sublabel": "build · test · deploy",
+      "width": 175
+    },
+    {
+      "id": "aes3",
+      "lane": "ae",
+      "col": 2,
+      "type": "cloud",
+      "label": "S3 folder",
+      "sublabel": "/all-employee",
+      "width": 175
+    },
+    {
+      "id": "dsrepo",
+      "lane": "ds",
+      "col": 0,
+      "type": "frontend",
+      "label": "Discretionary",
+      "sublabel": "own repository",
+      "width": 175
+    },
+    {
+      "id": "dspipe",
+      "lane": "ds",
+      "col": 1,
+      "type": "backend",
+      "label": "ADO pipeline",
+      "sublabel": "build · test · deploy",
+      "width": 175
+    },
+    {
+      "id": "dss3",
+      "lane": "ds",
+      "col": 2,
+      "type": "cloud",
+      "label": "S3 folder",
+      "sublabel": "/discretionary",
+      "width": 175
+    },
+    {
+      "id": "efrepo",
+      "lane": "ef",
+      "col": 0,
+      "type": "frontend",
+      "label": "Shared EFSL *",
+      "sublabel": "own repository",
+      "width": 175
+    },
+    {
+      "id": "efpipe",
+      "lane": "ef",
+      "col": 1,
+      "type": "backend",
+      "label": "ADO pipeline",
+      "sublabel": "build · test · deploy",
+      "width": 175
+    },
+    {
+      "id": "efs3",
+      "lane": "ef",
+      "col": 2,
+      "type": "cloud",
+      "label": "S3 folder",
+      "sublabel": "/shared-efsl *",
+      "width": 175
+    }
+  ],
+  "edges": [
+    {
+      "from": "shellrepo",
+      "to": "shellpipe",
+      "variant": "emphasis"
+    },
+    {
+      "from": "shellpipe",
+      "to": "shells3",
+      "variant": "emphasis"
+    },
+    {
+      "from": "srrepo",
+      "to": "srpipe",
+      "variant": "emphasis"
+    },
+    {
+      "from": "srpipe",
+      "to": "srs3",
+      "variant": "emphasis"
+    },
+    {
+      "from": "aerepo",
+      "to": "aepipe",
+      "variant": "emphasis"
+    },
+    {
+      "from": "aepipe",
+      "to": "aes3",
+      "variant": "emphasis"
+    },
+    {
+      "from": "dsrepo",
+      "to": "dspipe",
+      "variant": "emphasis"
+    },
+    {
+      "from": "dspipe",
+      "to": "dss3",
+      "variant": "emphasis"
+    },
+    {
+      "from": "efrepo",
+      "to": "efpipe",
+      "variant": "dashed"
+    },
+    {
+      "from": "efpipe",
+      "to": "efs3",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Independent release",
+      "items": [
+        "Own repository, own pipeline, own S3 folder",
+        "One team can release without waiting for another",
+        "All folders are served behind one CloudFront — one.equiniti.com"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Open item",
+      "items": [
+        "Shared EFSL is not yet confirmed"
+      ]
+    }
+  ],
+  "schema_version": 2
+}

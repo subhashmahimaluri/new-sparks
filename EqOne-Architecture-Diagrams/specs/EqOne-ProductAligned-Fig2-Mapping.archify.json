@@ -1,0 +1,332 @@
+{
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Product-aligned — each product owns its own Experience API",
+    "views": [
+      {
+        "id": "sirius-fan",
+        "label": "The Sirius fan-in",
+        "focus": [
+          "sharescsn",
+          "dividends",
+          "saye",
+          "sirius"
+        ],
+        "note": "Four products would each hold their own connection to the same Sirius Holding Facade."
+      },
+      {
+        "id": "clean-pairs",
+        "label": "Clean one-to-one pairs",
+        "focus": [
+          "gn",
+          "xanite",
+          "sip",
+          "siriussip",
+          "gspp",
+          "toption"
+        ],
+        "note": "Global Nominee, SIP and GSPP map cleanly to a single backend each."
+      },
+      {
+        "id": "awards",
+        "label": "Discretionary",
+        "focus": [
+          "disc",
+          "centive"
+        ],
+        "note": "All three award types stay in one MFE because they share one backend."
+      }
+    ],
+    "quality_profile": "showcase",
+    "output": "/tmp/eqone/prod/p2.html",
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "frontend": {
+          "label": "MFE + its Experience API"
+        },
+        "external": {
+          "label": "Backend system"
+        }
+      }
+    },
+    "animation": "none"
+  },
+  "components": [
+    {
+      "id": "shell",
+      "type": "frontend",
+      "label": "Shell (Core)",
+      "sublabel": "Equiniti.Nexus.Experience.Api · existing",
+      "pos": [
+        40,
+        40
+      ],
+      "size": [
+        310,
+        64
+      ]
+    },
+    {
+      "id": "sharescsn",
+      "type": "frontend",
+      "label": "Shares / CSN",
+      "sublabel": "Shares Reg Experience API",
+      "pos": [
+        40,
+        128
+      ],
+      "size": [
+        310,
+        64
+      ]
+    },
+    {
+      "id": "dividends",
+      "type": "frontend",
+      "label": "Dividends",
+      "sublabel": "Dividends Experience API *",
+      "pos": [
+        40,
+        216
+      ],
+      "size": [
+        310,
+        64
+      ]
+    },
+    {
+      "id": "saye",
+      "type": "frontend",
+      "label": "SAYE",
+      "sublabel": "SAYE Experience API",
+      "pos": [
+        40,
+        304
+      ],
+      "size": [
+        310,
+        64
+      ]
+    },
+    {
+      "id": "gn",
+      "type": "frontend",
+      "label": "Global Nominee",
+      "sublabel": "Global Nominee Experience API",
+      "pos": [
+        40,
+        392
+      ],
+      "size": [
+        310,
+        64
+      ]
+    },
+    {
+      "id": "sip",
+      "type": "frontend",
+      "label": "SIP",
+      "sublabel": "SIP Experience API",
+      "pos": [
+        40,
+        480
+      ],
+      "size": [
+        310,
+        64
+      ]
+    },
+    {
+      "id": "gspp",
+      "type": "frontend",
+      "label": "GSPP",
+      "sublabel": "GSPP Experience API",
+      "pos": [
+        40,
+        568
+      ],
+      "size": [
+        310,
+        64
+      ]
+    },
+    {
+      "id": "disc",
+      "type": "frontend",
+      "label": "Discretionary Awards",
+      "sublabel": "Discretionary Experience API",
+      "pos": [
+        40,
+        656
+      ],
+      "size": [
+        310,
+        64
+      ]
+    },
+    {
+      "id": "common",
+      "type": "external",
+      "label": "Common Services · Umbraco",
+      "sublabel": "shared platform",
+      "pos": [
+        700,
+        40
+      ],
+      "size": [
+        260,
+        64
+      ]
+    },
+    {
+      "id": "sirius",
+      "type": "external",
+      "label": "Sirius Holding Facade",
+      "sublabel": "Shares · CSN · Dividends · SAYE",
+      "pos": [
+        700,
+        216
+      ],
+      "size": [
+        260,
+        64
+      ]
+    },
+    {
+      "id": "xanite",
+      "type": "external",
+      "label": "Xanite Web Services",
+      "sublabel": "Global Nominee",
+      "pos": [
+        700,
+        392
+      ],
+      "size": [
+        260,
+        64
+      ]
+    },
+    {
+      "id": "siriussip",
+      "type": "external",
+      "label": "Sirius SIP Facade",
+      "sublabel": "SIP (EQ)",
+      "pos": [
+        700,
+        480
+      ],
+      "size": [
+        260,
+        64
+      ]
+    },
+    {
+      "id": "toption",
+      "type": "external",
+      "label": "tOption / ESP Executive",
+      "sublabel": "GSPP",
+      "pos": [
+        700,
+        568
+      ],
+      "size": [
+        260,
+        64
+      ]
+    },
+    {
+      "id": "centive",
+      "type": "external",
+      "label": "Centive Portal API",
+      "sublabel": "Cash · Share · Option Awards",
+      "pos": [
+        700,
+        656
+      ],
+      "size": [
+        260,
+        64
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": "shell",
+      "to": "common",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "sharescsn",
+      "to": "sirius",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "dividends",
+      "to": "sirius",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "saye",
+      "to": "sirius",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "gn",
+      "to": "xanite",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "sip",
+      "to": "siriussip",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "gspp",
+      "to": "toption",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "disc",
+      "to": "centive",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "What this buys",
+      "items": [
+        "One product, one MFE, one Experience API, one backend",
+        "Blast radius is a single product, not a category",
+        "A product can be replaced or retired on its own"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "What it costs",
+      "items": [
+        "Eight MFE repos and eight API repos instead of five and five",
+        "Four separate Experience APIs would hold a connection to Sirius",
+        "Shared plan-participation UI gets duplicated or needs another library"
+      ]
+    }
+  ],
+  "schema_version": 1
+}

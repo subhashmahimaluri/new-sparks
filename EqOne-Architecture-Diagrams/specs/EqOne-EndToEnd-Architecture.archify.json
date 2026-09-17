@@ -1,0 +1,353 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "EqOne — End to end: build, deploy and runtime",
+    "quality_profile": "showcase",
+    "output": "/tmp/eqone/std/e2e.html",
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "frontend": {
+          "label": "Front end"
+        },
+        "backend": {
+          "label": "Service / API"
+        },
+        "cloud": {
+          "label": "AWS / CI-CD"
+        },
+        "database": {
+          "label": "Data store"
+        },
+        "security": {
+          "label": "Identity / security"
+        },
+        "external": {
+          "label": "Backend system"
+        },
+        "messagebus": {
+          "label": "Messaging"
+        }
+      }
+    },
+    "views": [
+      {
+        "id": "build",
+        "label": "Build and deploy",
+        "focus": [
+          "repos",
+          "ado",
+          "s3",
+          "ecr"
+        ],
+        "note": "Every repository has its own Azure DevOps pipeline. MFE bundles go to S3; API images go to ECR and run on ECS."
+      },
+      {
+        "id": "signin",
+        "label": "Sign-in",
+        "focus": [
+          "cust",
+          "gip",
+          "shell"
+        ],
+        "note": "The customer signs in once at GIP. The Shell owns the session and shares it silently with every MFE."
+      },
+      {
+        "id": "runtime",
+        "label": "Runtime path",
+        "focus": [
+          "shell",
+          "mfes",
+          "apis",
+          "backends"
+        ],
+        "note": "Each MFE calls its own Experience API directly — no shared gateway — and each API calls only its own backend system."
+      },
+      {
+        "id": "delivery",
+        "label": "From pipeline to browser",
+        "focus": [
+          "s3",
+          "shell",
+          "ecr",
+          "apis"
+        ],
+        "note": "S3 serves the Shell and every MFE bundle; ECS runs each Experience API behind its own load balancer."
+      }
+    ],
+    "animation": "none"
+  },
+  "components": [
+    {
+      "id": "repos",
+      "type": "frontend",
+      "label": "Repositories",
+      "sublabel": "5 MFE + 5 API + shared lib",
+      "pos": [
+        30,
+        90
+      ],
+      "size": [
+        210,
+        58
+      ]
+    },
+    {
+      "id": "ado",
+      "type": "cloud",
+      "label": "Azure DevOps",
+      "sublabel": "one pipeline per repository",
+      "pos": [
+        280,
+        90
+      ],
+      "size": [
+        220,
+        58
+      ]
+    },
+    {
+      "id": "s3",
+      "type": "cloud",
+      "label": "S3 + CloudFront",
+      "sublabel": "one folder per MFE",
+      "pos": [
+        540,
+        90
+      ],
+      "size": [
+        230,
+        58
+      ]
+    },
+    {
+      "id": "ecr",
+      "type": "cloud",
+      "label": "ECR → ECS",
+      "sublabel": "one service per API",
+      "pos": [
+        820,
+        90
+      ],
+      "size": [
+        230,
+        58
+      ]
+    },
+    {
+      "id": "cust",
+      "type": "external",
+      "label": "Customer",
+      "sublabel": "one.equiniti.com",
+      "pos": [
+        30,
+        330
+      ],
+      "size": [
+        180,
+        58
+      ]
+    },
+    {
+      "id": "gip",
+      "type": "security",
+      "label": "GIP (Azure B2C)",
+      "sublabel": "one sign-in",
+      "pos": [
+        260,
+        220
+      ],
+      "size": [
+        220,
+        58
+      ]
+    },
+    {
+      "id": "shell",
+      "type": "frontend",
+      "label": "Shell (Core)",
+      "sublabel": "owns the session · loads remotes",
+      "pos": [
+        260,
+        330
+      ],
+      "size": [
+        220,
+        58
+      ]
+    },
+    {
+      "id": "mfes",
+      "type": "frontend",
+      "label": "Category MFEs",
+      "sublabel": "4 category MFEs",
+      "pos": [
+        540,
+        330
+      ],
+      "size": [
+        230,
+        58
+      ]
+    },
+    {
+      "id": "apis",
+      "type": "backend",
+      "label": "Experience APIs",
+      "sublabel": "one per MFE · own load balancer",
+      "pos": [
+        820,
+        330
+      ],
+      "size": [
+        230,
+        58
+      ]
+    },
+    {
+      "id": "backends",
+      "type": "external",
+      "label": "Backend systems",
+      "sublabel": "Sirius · Centive · Xanite · tOption",
+      "pos": [
+        1090,
+        330
+      ],
+      "size": [
+        230,
+        58
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Build and deploy — Azure DevOps to AWS",
+      "wraps": [
+        "repos",
+        "ado",
+        "s3",
+        "ecr"
+      ],
+      "pad": 20
+    },
+    {
+      "kind": "region",
+      "label": "Runtime — AWS · one.equiniti.com",
+      "wraps": [
+        "cust",
+        "gip",
+        "shell",
+        "mfes",
+        "apis",
+        "backends"
+      ],
+      "pad": 20
+    }
+  ],
+  "connections": [
+    {
+      "from": "repos",
+      "to": "ado",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "ado",
+      "to": "s3",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "ado",
+      "to": "ecr",
+      "label": "API images",
+      "fromSide": "top",
+      "toSide": "top",
+      "via": [
+        [
+          390,
+          50
+        ],
+        [
+          935,
+          50
+        ]
+      ]
+    },
+    {
+      "from": "s3",
+      "to": "mfes",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "from": "ecr",
+      "to": "apis",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "from": "cust",
+      "to": "shell",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "gip",
+      "to": "shell",
+      "variant": "security",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "from": "shell",
+      "to": "mfes",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "mfes",
+      "to": "apis",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "apis",
+      "to": "backends",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Build and deploy",
+      "items": [
+        "Every repository has its own Azure DevOps pipeline",
+        "MFE bundles go to their own S3 folder, served behind one CloudFront",
+        "API images go to ECR and run as their own ECS service",
+        "The shared library is published to Azure Artifacts and consumed by all five APIs"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Runtime",
+      "items": [
+        "The customer signs in once at GIP; the Shell owns the session",
+        "The Shell loads every category MFE over Module Federation",
+        "Each MFE calls its own Experience API directly — no shared gateway hop",
+        "Each Experience API validates the JWT and calls only its own backend system"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,182 @@
+{
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Figure 2 — Category-aligned MFEs under one Shell",
+    "quality_profile": "showcase",
+    "output": "/tmp/eqone/figs/fig02.html",
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "frontend": {
+          "label": "Front end"
+        },
+        "backend": {
+          "label": "Service / API"
+        },
+        "cloud": {
+          "label": "AWS service"
+        },
+        "database": {
+          "label": "Data store"
+        },
+        "security": {
+          "label": "Identity / security"
+        },
+        "external": {
+          "label": "Backend system"
+        },
+        "messagebus": {
+          "label": "Messaging"
+        }
+      }
+    }
+  },
+  "components": [
+    {
+      "id": "shell",
+      "type": "frontend",
+      "label": "Shell (Core)",
+      "sublabel": "host · EQNexusUI · sign-in · registration · IDV · holdings",
+      "pos": [
+        430,
+        40
+      ],
+      "size": [
+        300,
+        74
+      ],
+      "tag": "Alphas"
+    },
+    {
+      "id": "sr",
+      "type": "frontend",
+      "label": "Shares Reg",
+      "sublabel": "Shares · CSN · Dividends",
+      "pos": [
+        40,
+        230
+      ],
+      "size": [
+        240,
+        74
+      ],
+      "tag": "Alphas"
+    },
+    {
+      "id": "ae",
+      "type": "frontend",
+      "label": "All-Employee",
+      "sublabel": "SAYE · SIP · GSPP",
+      "pos": [
+        310,
+        230
+      ],
+      "size": [
+        240,
+        74
+      ],
+      "tag": "Panthers"
+    },
+    {
+      "id": "ds",
+      "type": "frontend",
+      "label": "Discretionary",
+      "sublabel": "Cash · Share · Option Awards",
+      "pos": [
+        580,
+        230
+      ],
+      "size": [
+        240,
+        74
+      ],
+      "tag": "Rhinos"
+    },
+    {
+      "id": "ef",
+      "type": "frontend",
+      "label": "Shared EFSL *",
+      "sublabel": "share plans · dealing accounts · nominee",
+      "pos": [
+        850,
+        230
+      ],
+      "size": [
+        240,
+        74
+      ],
+      "tag": "to confirm"
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "EqOne — one application · one sign-in · one.equiniti.com",
+      "wraps": [
+        "shell",
+        "sr",
+        "ae",
+        "ds",
+        "ef"
+      ],
+      "pad": 22
+    }
+  ],
+  "connections": [
+    {
+      "from": "shell",
+      "to": "sr",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "from": "shell",
+      "to": "ae",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "from": "shell",
+      "to": "ds",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "from": "shell",
+      "to": "ef",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "One team owns one category",
+      "items": [
+        "Alphas own the Shell and Shares Reg",
+        "Panthers own All-Employee",
+        "Rhinos own Discretionary"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "The customer sees one product",
+      "items": [
+        "The Shell loads every category over Module Federation",
+        "One sign-in, one navigation, one look and feel"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Open item",
+      "items": [
+        "Shared EFSL grouping is not yet confirmed"
+      ]
+    }
+  ],
+  "schema_version": 1
+}

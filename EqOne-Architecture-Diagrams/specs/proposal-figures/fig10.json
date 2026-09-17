@@ -1,0 +1,171 @@
+{
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Figure 10 — Failure isolation",
+    "quality_profile": "showcase",
+    "output": "/tmp/eqone/figs/fig10.html",
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "frontend": {
+          "label": "Front end"
+        },
+        "backend": {
+          "label": "Service / API"
+        },
+        "cloud": {
+          "label": "AWS service"
+        },
+        "database": {
+          "label": "Data store"
+        },
+        "security": {
+          "label": "Identity / security"
+        },
+        "external": {
+          "label": "Backend system"
+        },
+        "messagebus": {
+          "label": "Messaging"
+        }
+      }
+    }
+  },
+  "components": [
+    {
+      "id": "shell",
+      "type": "frontend",
+      "label": "Shell (Core)",
+      "sublabel": "sign-in · navigation · unaffected",
+      "pos": [
+        320,
+        40
+      ],
+      "size": [
+        320,
+        64
+      ]
+    },
+    {
+      "id": "sr",
+      "type": "frontend",
+      "label": "Shares Reg",
+      "pos": [
+        40,
+        220
+      ],
+      "size": [
+        210,
+        64
+      ],
+      "tag": "working"
+    },
+    {
+      "id": "ae",
+      "type": "frontend",
+      "label": "All-Employee",
+      "pos": [
+        280,
+        220
+      ],
+      "size": [
+        210,
+        64
+      ],
+      "tag": "working"
+    },
+    {
+      "id": "ds",
+      "type": "external",
+      "label": "Discretionary",
+      "sublabel": "friendly fallback shown",
+      "pos": [
+        520,
+        220
+      ],
+      "size": [
+        210,
+        64
+      ],
+      "tag": "down"
+    },
+    {
+      "id": "ef",
+      "type": "frontend",
+      "label": "Shared EFSL *",
+      "pos": [
+        760,
+        220
+      ],
+      "size": [
+        210,
+        64
+      ],
+      "tag": "working"
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "EqOne — one app, one sign-in (unaffected)",
+      "wraps": [
+        "shell",
+        "sr",
+        "ae",
+        "ds",
+        "ef"
+      ],
+      "pad": 22
+    }
+  ],
+  "connections": [
+    {
+      "from": "shell",
+      "to": "sr",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "from": "shell",
+      "to": "ae",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "from": "shell",
+      "to": "ds",
+      "variant": "security",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "from": "shell",
+      "to": "ef",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Blast radius is one tile",
+      "items": [
+        "If one MFE, Experience API or backend system fails, only that tile falls back",
+        "Sign-in, navigation and the other products keep working"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "How the fallback behaves",
+      "items": [
+        "The Experience API returns a controlled or partial response",
+        "Circuit breaker opens; cached data is used where safe",
+        "The customer sees a message on that tile, not an error page"
+      ]
+    }
+  ],
+  "schema_version": 1
+}
